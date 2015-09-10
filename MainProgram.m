@@ -41,7 +41,7 @@ if NumSquare == 1
     XSquareCenter = 0;
     YSquareCenter = 0;
 else
-    [XSquareCenter,YSquareCenter]= meshgrid(-0.5:1/(sqrt(NumSquare)-1):0.5);
+    [XSquareCenter,YSquareCenter]= meshgrid(linspace(-1*(sqrt(NumSquare)-1)/2,(sqrt(NumSquare)-1)/2,sqrt(NumSquare)));
 end
 
 if ~exist(SizeSquare,'var')
@@ -56,13 +56,14 @@ if ~exist(GapWidth,'var')
 end
 
 XSquareCenter = reshaple(XSquareCenter,1,NumSquare);
-XSquareCenter = round(XSquareCenter.*(SizeSquare+ + SizeScreenX/2);
+XSquareCenter = round(XSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenX/2);
 
 YSquareCenter = reshaple(YSquareCenter,1,NumSquare);
-YSquareCenter = round(YSquareCenter.*SizeSquare + SizeScreenY/2);
+YSquareCenter = round(YSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenY/2);
+
+RectBase=[0,0,round(SizeSquare),round(SizeSquare)];
+RectSquare=CenterRectOnPointd(BaseRect,XSquareCenter',YSquareCenter');
     
-
-
 
 Screen('BlendFunction', HandleWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
