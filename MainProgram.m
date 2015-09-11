@@ -36,6 +36,20 @@ TopPriorityLevel = MaxPriority(HandleWindow);
 
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', HandleWindow);
 
+%字体大小设定
+Screen('TextFont', window, '微软雅黑');
+Screen('TextSize', window, 40);
+
+Screen('BlendFunction', HandleWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+WaitFrames = 1;
+
+
+%提示信息
+MessagePreparation = 
+
+
+
+%%
 %方块坐标运算
 if NumSquare == 1
     XSquareCenter = 0;
@@ -62,18 +76,17 @@ YSquareCenter = reshaple(YSquareCenter,1,NumSquare);
 YSquareCenter = round(YSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenY/2);
 
 RectBase=[0,0,round(SizeSquare),round(SizeSquare)];
-RectSquare=CenterRectOnPointd(BaseRect,XSquareCenter',YSquareCenter');
+RectSquare=CenterRectOnPointd(RectBase,XSquareCenter',YSquareCenter');
     
 
-Screen('BlendFunction', HandleWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
-WaitFrames = 1;
+DrawFormattedText(window,MessagePreparation,'center', 'center', white);
 
 Priority(topPriorityLevel);
 vbl = Screen('Flip', HandleWindow);
 
-
+for frame =1：
 
 Screen('DrawingFinished', HandleWindow);
 vbl = Screen('Flip', HandleWindow, vbl + (WaitFrames - 0.5) * FlipInterval);
