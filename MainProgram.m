@@ -29,6 +29,8 @@ green = [black(1),white(2),black(3)];
 blue = [black(1:2),white(3)];
 gray = white/2;
 
+try
+
 
 [PointerWindow,RectWindow] = PsychImaging('OpenWindow', ScreenNumber, black);
 
@@ -115,7 +117,7 @@ HandlePortAudio = PsychPortAudio('Open', [], 1, 1,AudioSampleRate, NumAudioChann
 PsychPortAudio('Volume', HandlePortAudio, 0.5);
 
 
-
+HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
 
 
 Priority(LevelTopPriority);
@@ -128,7 +130,9 @@ for trial =1:NumTrial
     AudioDataLeft = reshape(DataPureTone(1,CodedDotSequence,1:TimeCodedSound*NumCodedDot*AudioSampleRate),1,[]);
     AuDioDataRight = reshape(DataPureTone(2,CodedDotSequence,1:TimeCodedSound*NumCodedDot*AudioSampleRate),1,[]);
     
-    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
+    
+
+    PsychPortAudio('FillBuffer', HandlePortAudio,HandleNoiseBuffer);
     
     
     
@@ -152,6 +156,8 @@ for trial =1:NumTrial
     
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
     
+    
+    
     for Frame =1:round(TimeWhiteNoise*NumCodedDot*FramePerSecond)
         
         DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', white);
@@ -159,6 +165,12 @@ for trial =1:NumTrial
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
+    
+    PsychPortAudio('Stop', HandlePortAudio);
+   
+    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
+      
+    PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
     
     for frame=1:round(TimeCodedSound*NumCodedDot*FramePerSecond)
         
@@ -171,6 +183,7 @@ for trial =1:NumTrial
         
     end
     
+    PsychPortAudio('Stop', HandlePortAudio);
     
     for frame = 1:round(TimeSilence*FramePerSecond)
         
@@ -188,15 +201,26 @@ end
 
 Priority(0);
 
-
-PsychPortAudio('Stop', HandlePortAudio);
 PsychPortAudio('Close', HandlePortAudio);
 
 close all;
 clear;
 sca;
 
-
+catch Error
+  
+    PsychPortAudio('Stop', HandlePortAudio);
+    PsychPortAudio('Close', HandlePortAudio);
+    
+    Priority(0);
+    close all;
+    clear;
+    sca;
+    
+    
+    
+    
+end
 
 % escapeKey = KbName('ESCAPE');
 % upKey = KbName('UpArrow');
