@@ -1,21 +1,22 @@
+%Psychtoolbox:3.0.12 
+%Matlab:R2015a x64
+%OS:Windows 8.1 x64
+
 
 close all;
 clear;
 sca;
 
+%%
+%随机数生成器设置
+rng('shuffle');%Matlab R2012之后版本
+% rand('twister',mod(floor(now*8640000),2^31-1));%Matlab R2012之前版本
+
 
 %%
-%参数计算
-
-
-
-
-
-
-
+%显示部分设置
 
 PsychDefaultSetup(2);
-
 
 AllString = Screen('Screens');
 ScreenNumber = max(Screens);
@@ -23,33 +24,36 @@ ScreenNumber = max(Screens);
 
 white = WhiteIndex(ScreenNumber);
 black = BlackIndex(ScreenNumber);
+red = [white(1),black(2:3)];
+green = [black(1),white(2),black(3)];
+blue = [black(1:2),white(3)];
+gray = white/2;
 
 
-[HandleWindow,RectWindow] = PsychImaging('OpenWindow', ScreenNumber, black);
+[PointerWindow,RectWindow] = PsychImaging('OpenWindow', ScreenNumber, black);
 
 
-FlipInterval = Screen('GetFlipInterval', HandleWindow);
+TimePerFlip = Screen('GetFlipInterval', PointerWindow);
 
-FramesPerSecond = 1/FlipInterval;
+FramePerSecond = 1/FlipInterval;
 
-TopPriorityLevel = MaxPriority(HandleWindow);
+LevelTopPriority = MaxPriority(PointerWindow);
 
-[SizeScreenX, SizeScreenY] = Screen('WindowSize', HandleWindow);
+[SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
 %字体大小设定
 Screen('TextFont', window, '微软雅黑');
 Screen('TextSize', window, 40);
 
-Screen('BlendFunction', HandleWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-WaitFrames = 1;
+Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+FrameWait = 1;
 
 
 %提示信息
-MessagePreparation = 
+MessagePrepare = ['实验将于',num2Str(TimePrepare),'秒后开始...'];
+MessageWhiteNoise = '现在播放的是白噪声...'; 
+MessageSilence = '稍后进入下一组实验...'; 
 
-
-
-%%
 %方块坐标运算
 if NumSquare == 1
     XSquareCenter = 0;
@@ -75,29 +79,140 @@ XSquareCenter = round(XSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenX/2);
 YSquareCenter = reshaple(YSquareCenter,1,NumSquare);
 YSquareCenter = round(YSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenY/2);
 
-RectBase=[0,0,round(SizeSquare),round(SizeSquare)];
-RectSquare=CenterRectOnPointd(RectBase,XSquareCenter',YSquareCenter');
+RectBaseSquare = [0,0,round(SizeSquare),round(SizeSquare)];
+RectSquare = CenterRectOnPointd(RectBase,XSquareCenter',YSquareCenter');
+RectBaseDot = [0,0,round(SizeDot),round(SizeDot)];
+RectDot = CenterRectOnPointd(RectBaseDot,XSquareCenter',YSquareCenter');
+
     
 
+%%
+%音频设置
+
+%开启低延迟模式
+EnableSoundLowLatencyMode = true; 
+InitializePsychSound(EnableLowLatencyMode);
 
 
-DrawFormattedText(window,MessagePreparation,'center', 'center', white);
+NumAudioChannel = 2;
+AudioSampleRate= 48000;
 
-Priority(topPriorityLevel);
-vbl = Screen('Flip', HandleWindow);
+%立刻开始
+AudioStartTime = 0;
+WaitUntilDeviceStart = true;
+AudioRepetition = 1;
 
-for frame =1：
 
-Screen('DrawingFinished', HandleWindow);
-vbl = Screen('Flip', HandleWindow, vbl + (WaitFrames - 0.5) * FlipInterval);
+% Open Psych-Audio port, with the follow arguements
+% (1) [] = default sound device
+% (2) 1 = sound playback only
+% (3) 1 = default level of latency
+% (4) Requested frequency in samples per second
+% (5) 2 = stereo putput
+HandlePortAudio = PsychPortAudio('Open', [], 1, 1,AudioSampleRate, NumAudioChannel);
+
+
+PsychPortAudio('Volume', HandlePortAudio, 0.5);
+
+
+
+
+
+Priority(LevelTopPriority);
+vbl = Screen('Flip', PointerWindow);
+
+for trial =1:NumTrial
+    
+    CodedDotSequence = randperm(NumSquare,NumCodedDot);
+    
+    AudioDataLeft = reshape(DataPureTone(1,CodedDotSequence,1:TimeCodedSound*NumCodedDot*AudioSampleRate),1,[]);
+    AuDioDataRight = reshape(DataPureTone(2,CodedDotSequence,1:TimeCodedSound*NumCodedDot*AudioSampleRate),1,[]);
+    
+    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
+    
+    
+    
+    for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+        
+        DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', white);
+        Screen('DrawingFinished', PointerWindow);
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+        
+    end
+    
+    
+    for frame =1:round(TimeCountdown*FramePerSecond)
+        
+        TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
+        DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', white);
+        Screen('DrawingFinished', PointerWindow);
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+        
+    end
+    
+    PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+    
+    for Frame =1:round(TimeWhiteNoise*NumCodedDot*FramePerSecond)
+        
+        DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', white);
+        Screen('DrawingFinished', PointerWindow);
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+        
+    end
+    
+    for frame=1:round(TimeCodedSound*NumCodedDot*FramePerSecond)
+        
+        Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
+        Screen('FillOval', PointerWindow,ColorDot,RectDot,SizeDot+1);
+        
+        Screen('DrawingFinished', PointerWindow);
+        
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+        
+    end
+    
+    
+    for frame = 1:round(TimeSilence*FramePerSecond)
+        
+        DrawFormattedText(PointerWindow,MessageSlience,'center', 'center', white);
+        
+        Screen('DrawingFinished', PointerWindow);
+        
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+        
+        
+    end
+    
+end
 
 
 Priority(0);
 
 
+PsychPortAudio('Stop', HandlePortAudio);
+PsychPortAudio('Close', HandlePortAudio);
 
 close all;
 clear;
 sca;
+
+
+
+% escapeKey = KbName('ESCAPE');
+% upKey = KbName('UpArrow');
+% downKey = KbName('DownArrow');
+% leftKey = KbName('LeftArrow');
+% rightKey = KbName('RightArrow');
+% 
+% [keyIsDown,secs, keyCode] = KbCheck;
+% 
+% if keyCode(escapeKey)
+%     
+%     
+%     
+%     SetMouse(round(rand * screenXpixels), round(rand * screenYpixels), window);
+%     
+%      [x, y, buttons] = GetMouse(window);
+
 
 
