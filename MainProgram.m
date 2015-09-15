@@ -97,7 +97,7 @@ InitializePsychSound(EnableLowLatencyMode);
 
 
 NumAudioChannel = 2;
-AudioSampleRate= 48000;
+AudioSampleRate= 44100;
 
 %Á¢¿Ì¿ªÊ¼
 AudioStartTime = 0;
@@ -138,8 +138,23 @@ for trial =1:NumTrial
     
     for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
         
+        [IsKeyDown,~,KeyCode] = KbCheck;
+        
+        
+        
         DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', white);
         Screen('DrawingFinished', PointerWindow);
+        
+        if KeyCode(KbName('ESCAPE'))
+            
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            Priority(0);
+            sca;
+            
+        end
+        
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
@@ -150,6 +165,19 @@ for trial =1:NumTrial
         TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
         DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', white);
         Screen('DrawingFinished', PointerWindow);
+        
+           
+        if KeyCode(KbName('ESCAPE'))
+            
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            Priority(0);
+            sca;
+            
+        end
+        
+        
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
@@ -160,8 +188,22 @@ for trial =1:NumTrial
     
     for Frame =1:round(TimeWhiteNoise*NumCodedDot*FramePerSecond)
         
+        
         DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', white);
         Screen('DrawingFinished', PointerWindow);
+        
+           
+        if KeyCode(KbName('ESCAPE'))
+            
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            Priority(0);
+            sca;
+            
+        end
+        
+        
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
@@ -179,6 +221,18 @@ for trial =1:NumTrial
         
         Screen('DrawingFinished', PointerWindow);
         
+           
+        if KeyCode(KbName('ESCAPE'))
+            
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            Priority(0);
+            sca;
+            
+        end
+        
+        
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
@@ -190,6 +244,17 @@ for trial =1:NumTrial
         DrawFormattedText(PointerWindow,MessageSlience,'center', 'center', white);
         
         Screen('DrawingFinished', PointerWindow);
+           
+        if KeyCode(KbName('ESCAPE'))
+            
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            Priority(0);
+            sca;
+            
+        end
+        
         
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
@@ -213,12 +278,10 @@ catch Error
     PsychPortAudio('Close', HandlePortAudio);
     
     Priority(0);
-    close all;
-    clear;
-    sca;
+    sca;    
     
-    
-    
+    rethrow(Error);
+      
     
 end
 
