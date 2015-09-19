@@ -5,26 +5,30 @@
 %%
 %本程序生成编码图像所需的声音，并保存至mat文件之中
 
-function   AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,AudioSampleRate) 
+function   AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio) 
 
-DataPureTune = zeros(2,numel(MatrixFreq),TimeCodedSound*AudioSampleRate);
+DataPureTone = zeros(2,numel(MatrixFreq),TimeCodedSound*SampleRateAudio);
 
 
-SmoothCosFreq = 1/(TimeCodedSound*0.2) ;
-SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeCodedSound*0.1,TimeCodedSound*0.1,TimeCodedSound*0.2*AudioSampleRate))+1);
-SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
-                  ones(1,TimeCodedSound*AudioSampleRate-numel(SmoothSequence)),...
-                  SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+% SmoothCosFreq = 1/(TimeCodedSound*0.2) ;
+
+% SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeCodedSound*0.1,TimeCodedSound*0.1,TimeCodedSound*0.2*SampleRateAudio))+1);
+% SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+%                   ones(1,TimeCodedSound*SampleRateAudio-numel(SmoothSequence)),...
+%                   SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
               
 
 for i =1:1:numel(MatrixFreq)
-DataPureTune(1,i,:) = MatrixLeftAmp(i)*sin(2*pi*MatrixFreq(i)*linspace(0,TimeCodedSound,TimeCodedSound*AudioSampleRate));
+DataPureTone(1,i,:) = MatrixLeftAmp(i)*sin(2*pi*MatrixFreq(i)*linspace(0,TimeCodedSound,TimeCodedSound*SampleRateAudio));
 
-DataPureTune(2,i,:) = MatrixRightAmp(i)*sin(2*pi*MatrixFreq(i).*linspace(0,TimeCodedSound,TimeCodedSound*AudioSampleRate));
+DataPureTone(2,i,:) = MatrixRightAmp(i)*sin(2*pi*MatrixFreq(i).*linspace(0,TimeCodedSound,TimeCodedSound*SampleRateAudio));
 
 
-DataPureTune(1,i,:) = reshape(DataPureTune(1,i,:),1,TimeCodedSound*AudioSampleRate).*SmoothSequence;
-DataPureTune(2,i,:) = reshape(DataPureTune(2,i,:),1,TimeCodedSound*AudioSampleRate).*SmoothSequence;
+% DataPureTone(1,i,:) = reshape(DataPureTone(1,i,:),1,TimeCodedSound*SampleRateAudio).*SmoothSequence;
+% DataPureTone(2,i,:) = reshape(DataPureTone(2,i,:),1,TimeCodedSound*SampleRateAudio).*SmoothSequence;
+
+DataPureTone(1,i,:) = reshape(DataPureTone(1,i,:),1,TimeCodedSound*SampleRateAudio);
+DataPureTone(2,i,:) = reshape(DataPureTone(2,i,:),1,TimeCodedSound*SampleRateAudio);
 
 
 end
@@ -32,11 +36,11 @@ end
 
 
 MatrixFreq_mat = MatrixFreq;
-AudioSampleRate_mat =AudioSampleRate;
+SampleRateAudio_mat =SampleRateAudio;
 TimeCodedSound_mat = TimeCodedSound;
 MatrixLeftAmp_mat = MatrixLeftAmp;
 MatrixRightAmp_mat = MatrixRightAmp;
 
-save DataPureTune.mat DataPureTune MatrixFreq_mat AudioSampleRate_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+save DataPureTone.mat DataPureTone MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
 
 end
