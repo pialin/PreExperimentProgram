@@ -8,6 +8,7 @@ close all;
 clear;
 sca;
 
+cd
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -56,18 +57,19 @@ LevelTopPriority = MaxPriority(PointerWindow);
 %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
+%调用ParameterSetting.m设置相应参数
+ParameterSetting;
 
 %字体和大小设定
-Screen('TextFont',PointerWindow, '黑体');
-Screen('TextSize',PointerWindow, 40);
+Screen('TextFont',PointerWindow, NameFont);
+Screen('TextSize',PointerWindow, SizeFont);
 %设置Alpha-Blending相应参数
 Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 %等待帧数设定，后面用于保证准确的帧刷新时序
 FrameWait = 1;
 
-%调用ParameterSetting.m设置相应参数
-ParameterSetting;
+
 
 
 %方块坐标计算：XSquareCenter, YSquareCenter分别保存方块中心点的X坐标和Y坐标
@@ -139,7 +141,7 @@ vbl = Screen('Flip', PointerWindow);
 %时长为准备时长减去倒计时时长
 for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
     %绘制提示语
-    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', white);
+    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
     %提示程序所有内容已绘制完成
     Screen('DrawingFinished', PointerWindow);
     
@@ -168,7 +170,7 @@ for frame =1:round(TimeCountdown*FramePerSecond)
     %计算倒计时剩余时间
     TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
     %绘制倒计时数字
-    DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', white);
+    DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
     Screen('DrawingFinished', PointerWindow);
     
     %扫描键盘，如果Esc键被按下则退出程序
@@ -201,16 +203,21 @@ for trial =1:NumTrial
     %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
     AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
     %求和
-    AudioDataLeft = sum(AudioDataLeft);
-    %归一化
-    AudioDataLeft =  AudioDataLeft/max(abs(AudioDataLeft));
+    AudioDataLeft = sum(AudioDataLeft,1);
+
 
     
     AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
 
-    AudioDataRight = sum(AudioDataRight);
+    AudioDataRight = sum(AudioDataRight,1);
+    
+    %归一化
+    MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
+    AudioDataRight =  AudioDataRight/MaxAmp;
+    AudioDataLeft =  AudioDataLeft/MaxAmp;
+    
 
-    AudioDataRight =  AudioDataRight/max(abs(AudioDataRight));
+
     
     
     %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
@@ -225,7 +232,7 @@ for trial =1:NumTrial
 %时长由ParameterSetting中的TimeWhiteNoise决定
     for Frame =1:round(TimeWhiteNoise*FramePerSecond)
          
-        DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', white);
+        DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
         
            
@@ -300,11 +307,11 @@ end
     for frame = 1:round(TimeSilence*FramePerSecond)
         
         if trial ~= NumTrial
-            DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', white);
+            DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
             
         else
             
-            DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', white);
+            DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
             
         end
         
@@ -342,6 +349,13 @@ close all;
 %关闭窗口对象
 sca;
 
+NameRecordFile = [datestr(now,'yyyymmdd_HH-MM-SS'),'.xlsx'];
+DirectoryRecord = './RecordFiles/';
+A = {'次序',1:NumCodedDot;'方块序号',SequenceCodedDot};
+WhichSheet = 1;
+StartPos = 'A1';
+xlswrite(filename,A,QhichSheet,StartPos);
+
 %如果程序执行出错则执行下面程序
 catch Error
 
@@ -363,6 +377,7 @@ catch Error
 
 
 end
+
 
 
 

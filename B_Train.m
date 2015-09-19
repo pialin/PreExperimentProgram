@@ -46,15 +46,20 @@ LevelTopPriority = MaxPriority(PointerWindow);
 %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
-%字体和大小设定
-Screen('TextFont', PointerWindow, '微软雅黑');
-Screen('TextSize', PointerWindow , 50);
-%设置Alpha-Blending相应参数
-Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-FrameWait = 1;
-
 %调用ParameterSetting.m设置相应参数
 ParameterSetting;
+
+%字体和大小设定
+Screen('TextFont', PointerWindow, NameFont);
+Screen('TextSize', PointerWindow , SizeFont);
+%设置Alpha-Blending相应参数
+Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+%等待帧数设定，后面用于保证准确的帧刷新时序
+FrameWait = 1;
+
+
+
 
 %方块坐标计算：XSquareCenter, YSquareCenter分别保存方块中心点的X坐标和Y坐标
 if NumSquare == 1
@@ -128,7 +133,7 @@ AudioRepetition = 1;
 % (3) 1 , 默认延迟模式
 % (4) SampleRateAudio,音频采样率
 % (5) 2 ,输出声道数为2
-HandlePortAudio = PsychPortAudio('Open', [], 1, EnableSoundLowLatencyMode,AudioSampleRate, NumAudioChannel);
+HandlePortAudio = PsychPortAudio('Open', [], 1, EnableSoundLowLatencyMode,SampleRateAudio, NumAudioChannel);
 
 %播放音量设置
 PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
@@ -238,23 +243,27 @@ while 1
         if nnz(IndexPressedSquare)>0
             AudioDataLeft = reshape(DataPureTone(1,SequencePressedSquare(1:nnz(IndexPressedSquare)),1:TimeCodedSound*SampleRateAudio),nnz(IndexPressedSquare),[]);
             %求和
-            AudioDataLeft = sum(AudioDataLeft);
-            %归一化
-            AudioDataLeft =  AudioDataLeft/max(abs(AudioDataLeft));
+            AudioDataLeft = sum(AudioDataLeft,1);
+
             
             
             AudioDataRight = reshape(DataPureTone(2,SequencePressedSquare(1:nnz(IndexPressedSquare)),1:TimeCodedSound*SampleRateAudio),nnz(IndexPressedSquare),[]);
             
-            AudioDataRight = sum(AudioDataRight);
+            AudioDataRight = sum(AudioDataRight,1);
             
-            AudioDataRight =  AudioDataRight/max(abs(AudioDataRight));
+            %归一化
+            MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
+            AudioDataRight =  AudioDataRight/MaxAmp;
+            AudioDataLeft =  AudioDataLeft/MaxAmp;
+            
+            
             
             %填充到PortAudio对象的Buffer中
             PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
             %播放声音
             PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
             
-            %逐个方块绘制圆点和连线       
+            %绘制圆点和连线       
             for frame = 1:TimeCodedSound*FramePerSecond
                 
                 Screen('FillRect', PointerWindow,ColorSquare,RectSquare);

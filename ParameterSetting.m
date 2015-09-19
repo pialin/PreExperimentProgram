@@ -78,6 +78,14 @@ WidthLine = 7;%已经最大
 %训练程序的最大限制点数
 NumDotLimit = 4;
 
+%字体名称
+NameFont = '微软雅黑';
+%字体大小
+SizeFont = 50;
+%字体颜色
+ColorFont = white;
+
+
 %%
 %音频参数设置
 
@@ -95,9 +103,11 @@ MatrixLeftAmp = [ 0.8 0.5 0.2
 
 MatrixRightAmp = [ 0.2 0.5 0.8
                    0.2 0.5 0.8
-                   0.2 0.5 0.8 ];          
-
-
+                   0.2 0.5 0.8 ];  
+               
+MatrixFreq= MatrixFreq';
+MatrixLeftAmp =MatrixLeftAmp';
+MatrixRightAmp = MatrixRightAmp';
 
 %音频采样率（默认为48Hz,单位：Hz）
 SampleRateAudio = 48000;
@@ -130,7 +140,7 @@ DataWhiteNoise = DataWhiteNoise/max(abs(DataWhiteNoise(:)));
 MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
 MessageWhiteNoise = double('现在播放的是白噪声...'); 
 MessageSilence = double('稍后进入下一组实验...'); 
-MessageFinish = double('实验结束:)');
+MessageFinish = double('实验结束：)');
 
 
 %%
@@ -317,7 +327,25 @@ else
 end
 
 
+if isscalar(SizeFont) && isnumeric(SizeFont) && SizeFont>0 && fix(SizeFont) ==SizeFont
 
+else
+    errordlg('SizeFont设置有误','参数设置错误');
+    return;
+    
+end
+
+if (isscalar(ColorFont) || numel(ColorFont) == 3) && isnumeric(ColorFont) && ...
+    all(ColorFont>=0)  && all(ColorFont<=1) 
+
+else
+     errordlg('ColorFont设置有误','参数设置错误');
+     return;
+   
+end
+
+
+%音频参数验证
 
 if isscalar(AudioVolume) && isnumeric(AudioVolume)&& AudioVolume>=0 && AudioVolume<=1
     

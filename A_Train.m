@@ -46,15 +46,16 @@ LevelTopPriority = MaxPriority(PointerWindow);
 %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
+%调用ParameterSetting.m设置相应参数
+ParameterSetting;
+
 %字体和大小设定
-Screen('TextFont', PointerWindow, '微软雅黑');
-Screen('TextSize', PointerWindow , 50);
+Screen('TextFont', PointerWindow, NameFont);
+Screen('TextSize', PointerWindow ,SizeFont);
 %设置Alpha-Blending相应参数
 Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 FrameWait = 1;
 
-%调用ParameterSetting.m设置相应参数
-ParameterSetting;
 
 %方块坐标计算：XSquareCenter, YSquareCenter分别保存方块中心点的X坐标和Y坐标
 if NumSquare == 1
@@ -128,7 +129,7 @@ AudioRepetition = 1;
 % (3) 1 , 默认延迟模式
 % (4) SampleRateAudio,音频采样率
 % (5) 2 ,输出声道数为2
-HandlePortAudio = PsychPortAudio('Open', [], 1, EnableSoundLowLatencyMode,AudioSampleRate, NumAudioChannel);
+HandlePortAudio = PsychPortAudio('Open', [], 1, EnableSoundLowLatencyMode,SampleRateAudio, NumAudioChannel);
 
 %播放音量设置
 PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
@@ -240,12 +241,15 @@ while 1
             %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
             AudioDataLeft = reshape(DataPureTone(1,SequencePressedSquare(1:nnz(IndexPressedSquare)),1:TimeCodedSound*SampleRateAudio),nnz(IndexPressedSquare),[]);
             AudioDataLeft = reshape(AudioDataLeft',1,[]);
-            AudioDataLeft =  AudioDataLeft/max(abs(AudioDataLeft));
+            
             
             AudioDataRight = reshape(DataPureTone(2,SequencePressedSquare(1:nnz(IndexPressedSquare)),1:TimeCodedSound*SampleRateAudio),nnz(IndexPressedSquare),[]);
             AudioDataRight = reshape(AudioDataRight',1,[]);
-            AudioDataRight =  AudioDataRight/max(abs(AudioDataRight));
             
+            %归一化
+            MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
+            AudioDataRight =  AudioDataRight/MaxAmp;
+            AudioDataLeft =  AudioDataLeft/MaxAmp;
             
             
             %填充到PortAudio对象的Buffer中
