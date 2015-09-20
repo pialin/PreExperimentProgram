@@ -8,6 +8,9 @@ close all;
 clear;
 sca;
 
+%修改工作路径至当前M文件所在目录
+cd mfilename('fullpath');
+
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -27,7 +30,7 @@ PsychDefaultSetup(2);
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
-%若有外界显示器，保证呈现范式所用的显示器为外接显示器
+%若有外接显示器，保证呈现范式所用的显示器为外接显示器
 ScreenNumber = max(AllScreen);
 
 %获取黑白对应的颜色设定值并据此计算其他一些颜色的设定值

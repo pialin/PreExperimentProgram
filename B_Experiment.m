@@ -8,7 +8,9 @@ close all;
 clear;
 sca;
 
-cd
+%修改工作路径至当前M文件所在目录
+cd mfilename('fullpath');
+
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -28,7 +30,7 @@ PsychDefaultSetup(2);
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
-%若有外界显示器，保证呈现范式所用的显示器为外接显示器
+%若有外接显示器，保证呈现范式所用的显示器为外接显示器
 ScreenNumber = max(AllScreen);
 
 %获取黑白对应的颜色设定值并据此计算其他一些颜色的设定值
@@ -350,11 +352,13 @@ close all;
 sca;
 
 NameRecordFile = [datestr(now,'yyyymmdd_HH-MM-SS'),'.xlsx'];
-DirectoryRecord = './RecordFiles/';
-A = {'次序',1:NumCodedDot;'方块序号',SequenceCodedDot};
+DirectoryRecord = '.\RecordFiles\';
+
+A = magic(4);
 WhichSheet = 1;
-StartPos = 'A1';
-xlswrite(filename,A,QhichSheet,StartPos);
+BaseCell = 'A1';
+CellRange = [BaseCell,':',BaseCell+3];
+xlswrite([DirectoryRecord,NameRecordFile],A,WhichSheet,CellRange);
 
 %如果程序执行出错则执行下面程序
 catch Error
