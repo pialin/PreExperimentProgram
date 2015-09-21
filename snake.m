@@ -124,8 +124,7 @@ AudioRepetition = 1;
 % (5) 2 ,输出声道数为2
 HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChannel);
 
-%播放音量设置
-PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
+
 
 
 %优先级设置
@@ -136,26 +135,123 @@ vbl = Screen('Flip', PointerWindow);
 
 %%
 %开始
-%SequenceXYPos用于存储的光标位置变化情况，每一列分别代表一次位置的变动，第一行代表光标在方块矩阵的第几列，第二行代表光标在方块矩阵的第几行
-SequenceXYPos = zeros(2,MaxNumStep);
+%CursorPos用于存储的光标位置变化情况，每一列分别代表一次位置的变动，第一行代表光标在方块矩阵的第几列，第二行代表光标在方块矩阵的第几行
+PosCursor = zeros(2,MaxNumStep);
 %给定初始光标位置，即第一行第一列
-SequenceXYPos(:,1) = 1;
+PosCursor(:,1) = 1;
+PosTarget = zeros(2,NumTrial);
 
-while 
-while all(KeyDistance==0) || any(NextTarget>NumSquarePerRow) || any(NextTarget<1)
-Limit = min(ceil(NumSquarePerRow/2),min())
-KeyDistance = randi([-1*ceil(NumSquarePerRow/2),ceil(NumSquarePerRow/2)],2,1);
+while trial <= NumTrail 
 
-NextTarget = SequenceXYPos(:,nnz(SequenceXYPos(1,:)))+KeyDistance;
+KeyDistance = zeros(2,1);
+PosNextTarget = zeros(2,1);
+
+
+%随机地生成下一个目标点相对当前目标点横向偏移KeyDistance(1)和纵向偏移KeyDistance(2)
+%这个目标点与原目标点偏移相加必须大于1，并且不超过矩阵的范围
+while sum(KeyDistance)<=1 || any(PosNextTarget>NumSquarePerRow) || any(PosNextTarget<1)
+%横/纵向的偏移范围限制在正负NextTargetRange之间
+KeyDistance = randi([-1*RangeNextTarget,RangeNextTarget],2,1);
+%计算下一个坐标
+PosNextTarget = PosCursor(:,nnz(PosCursor(1,:)))+KeyDistance;
 
 end
 
+TargetPos(:,trial) = PosNextTarget;
 
-KeyDistance
+%首次调用耗时较长的函数
+[keyIsDown, secs, keyCode, deltaSecs] = KbCheck;
+[secs, keyCode, deltaSecs] = KbWait([deviceNumber][, forWhat=0][, untilTime=inf])
 
+StartTime =GetSecs;
+
+HitTarget = false;
+
+while HitTarget == false
+    
+switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
+
+    case '01'
+        CodedDot = 2;
+    case '10'
+        CodedDot = 6;
+    case '0-1'
+        CodedDot = 8;
+    case '-10'
+        CodedDot =4;
+        
+    case '11'
+        DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
+        if DirectionAngle >=0 && DirectionAngle <pi/8
+            CodedDot=6;
+        elseif DirectionAngle >=pi/8  && DirectionAngle <pi/8*3
+            CodedDot=3;
+        elseif DirectionAngle >=pi/8*3  && DirectionAngle <pi/2
+            CodedDot=2;                  
+        end
+    case '-11'
+        DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
+        if DirectionAngle >=0 && DirectionAngle <pi/8
+            CodedDot=4;
+        elseif DirectionAngle >=pi/8  && DirectionAngle <pi/8*3
+            CodedDot=1;
+        elseif DirectionAngle >=pi/8*3  && DirectionAngle <pi/2
+            CodedDot=2;
+        end
+        
+    case '-1-1'
+        DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
+        if DirectionAngle >=0 && DirectionAngle <pi/8
+            CodedDot=4;
+        elseif DirectionAngle >=pi/8  && DirectionAngle <pi/8*3
+            CodedDot=7;
+        elseif DirectionAngle >=pi/8*3  && DirectionAngle <pi/2
+            CodedDot=8;
+        end
+    case '1-1'
+        DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
+        if DirectionAngle >=0 && DirectionAngle <pi/8
+            CodedDot=6;
+        elseif DirectionAngle >=pi/8  && DirectionAngle <pi/8*3
+            CodedDot=9;
+        elseif DirectionAngle >=pi/8*3  && DirectionAngle <pi/2
+            CodedDot=8;
+        end
+end
+
+
+        
 %%
 %声音生成
 
+   %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
+    AudioDataLeft = reshape(DataPureTone(1,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
+    
+    AudioDataRight = reshape(DataPureTone(2,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
+     
+    %播放音量设置
+
+    EuclidDistance = sqrt(sum(KeyDistance.^2));
+    AudioVolume = MinAudioVolume+(1-MinAudioVolume)/(RangeNextTarget*sqrt(2)-sqrt(2))*(EuclidDistance-sqrt(2)) ;
+    
+    PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
+
+    
+    
+    %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
+                                                  AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+    
+    %播放声音
+    PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+
+    
+    TimeStart = GetSecs;
+    [keyIsDown, secs, keyCode, deltaSecs] = KbCheck;
+    while GetSecs <= TimeStart + TimeWaitPerMove  
+    
+    
+    
 end
 
 
