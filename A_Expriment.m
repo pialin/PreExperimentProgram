@@ -9,7 +9,11 @@ clear;
 sca;
 
 %修改工作路径至当前M文件所在目录
-cd mfilename('fullpath');
+Path=mfilename('fullpath');
+FileSepIndex = strfind(Path,filesep);
+cd(Path(1:FileSepIndex(end)));
+
+
 
 %%
 %随机数生成器状态设置
@@ -211,7 +215,8 @@ for trial =1:NumTrial
     AudioDataRight = reshape(AudioDataRight',1,[]);
     
     %归一化
-    MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
+    MaxAmp = max([MatrixLeftAmp(SequenceCodedDot), MatrixRightAmp(SequenceCodedDot)]);
+    
     AudioDataRight =  AudioDataRight/MaxAmp;
     AudioDataLeft =  AudioDataLeft/MaxAmp;
             
@@ -345,6 +350,7 @@ for trial =1:NumTrial
     end
     
 end
+
 
 %恢复显示优先级
 Priority(0);

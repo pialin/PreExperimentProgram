@@ -7,7 +7,9 @@
 close all;
 clear;
 sca;
-
+%键盘响应设置
+ListenChar(2);
+RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow')]);
 %修改工作路径至当前M文件所在目录
 cd mfilename('fullpath');
 
@@ -125,7 +127,8 @@ AudioRepetition = 1;
 HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChannel);
 
 
-
+%新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
+HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
 
 %优先级设置
 Priority(LevelTopPriority);
@@ -141,31 +144,37 @@ PosCursor = zeros(2,MaxNumStep);
 PosCursor(:,1) = 1;
 PosTarget = zeros(2,NumTrial);
 
-while trial <= NumTrail 
-
 KeyDistance = zeros(2,1);
 PosNextTarget = zeros(2,1);
 
 
 %随机地生成下一个目标点相对当前目标点横向偏移KeyDistance(1)和纵向偏移KeyDistance(2)
 %这个目标点与原目标点偏移相加必须大于1，并且不超过矩阵的范围
-while sum(KeyDistance)<=1 || any(PosNextTarget>NumSquarePerRow) || any(PosNextTarget<1)
-%横/纵向的偏移范围限制在正负NextTargetRange之间
-KeyDistance = randi([-1*RangeNextTarget,RangeNextTarget],2,1);
-%计算下一个坐标
-PosNextTarget = PosCursor(:,nnz(PosCursor(1,:)))+KeyDistance;
-
+for trial = 1:NumTrial
+    
+    while sum(KeyDistance)<=1 || any(PosNextTarget>NumSquarePerRow) || any(PosNextTarget<1)
+        %横/纵向的偏移范围限制在正负RangeNextTarget之间
+        KeyDistance = randi([-1*RangeNextTarget,RangeNextTarget],2,1);
+        %计算下一个坐标
+        PosNextTarget = PosCursor(:,trial)+KeyDistance;
+        
+    end
+    
+    PosTarget(:,trial) = PosNextTarget;
+    
 end
 
-TargetPos(:,trial) = PosNextTarget;
-
 %首次调用耗时较长的函数
-[keyIsDown, secs, keyCode, deltaSecs] = KbCheck;
-[secs, keyCode, deltaSecs] = KbWait([deviceNumber][, forWhat=0][, untilTime=inf])
+KbCheck;
+KbWait([],1);
 
 StartTime =GetSecs;
+NumStep = 0;
+
+for trial= 1:numTrial
 
 HitTarget = false;
+KeyDistance = PosCuror(:,NumStep+1)-PosTarget(:,NumTrial);
 
 while HitTarget == false
     
@@ -244,11 +253,88 @@ end
     
     %播放声音
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
-
+   
+    %等待方向键或者Esc键被按下
+    [ ~, KeyCode, ~] = KbWait([],0,GetSecs+TimeWaitPerMove);
+    %等待按键松开 
+    KbWait([],1,GetSecs+TimeWaitPerMove);
     
-    TimeStart = GetSecs;
-    [keyIsDown, secs, keyCode, deltaSecs] = KbCheck;
-    while GetSecs <= TimeStart + TimeWaitPerMove  
+    if any(KeyCode) && ~KeyCode(KbName('ESCAPE'))
+        NumStep = NumStep +1;
+        if KeyCode(KbName('LeftArrow'))
+            TempPosCursor = PosCursor(:,NumStep)+[-1;0];  
+        elseif KeyCode(KbName('RightArrow'))
+            TempPosCursor = PosCursor(:,NumStep)+[1;0];  
+        elseif KeyCode(KbName('UpArrow'))
+            TempPosCursor = PosCursor(:,NumStep)+[0;1];  
+        elseif KeyCode(KbName('DownArrow'))
+            TempPosCursor = PosCursor(:,NumStep)+[0;-1];  
+        end
+        
+    else
+        if exist('HandlePortAudio','var')
+            
+            %关闭PortAudio对象
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            %clear HandlePortAudio ;
+            
+        end
+        %恢复屏幕显示优先级
+        Priority(0);
+        %关闭所有窗口对象
+        sca;
+        
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
+        
+        return;
+        
+    end
+        
+    %若光标超出了边界   
+    if any(TempPosCursor>NumSquarePerRow) || any(TempPosCursor<1)
+        
+        PosCursor(:,NumStep+1)=PosCursor(:,NumStep);
+        
+        %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+        PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
+            AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+        
+        %播放声音
+        PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+        
+    else
+        
+        PosCursor(:,NumStep+1)=TempPosCursor;
+        %若光标到达目标点
+        if PosCursor(:,NumStep) == PosTarget(:,trial)
+            
+            FlagHitTarget = true;
+            %播放移动和命中声音
+            %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+            PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
+                AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+            
+            %播放声音
+            PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+        %若光标还未到达目标点
+        else
+            %播放移动声音
+            %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+            PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
+                AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+            
+            %播放声音
+            PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+            
+        end
+    end
+ 
+     
+   
     
     
     
@@ -271,6 +357,11 @@ catch Error
     Priority(0);
     %关闭所有窗口对象  
     sca;
+    
+    %恢复键盘设定
+    ListenChar(0);
+    RestrictKeysForKbCheck([]);
+    
     %在命令行输出前面的错误提示信息
     rethrow(Error);
 
