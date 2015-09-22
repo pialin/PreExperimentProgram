@@ -14,6 +14,10 @@ TimeGapSilence = 3;
 %每次移动光标等待时长（超过时长自动退出程序,单位：秒）
 TimeWaitPerMove = 100;
 
-%编码声音播放循环次数
-AudioRepetition = ceil(TimeWaitPerMove/(TimeCodedSound+TimeGapSilence));
+
+%一个Trial最多允许的步数
+NumMaxStepPerTrial=100;
+
+%方块数
+NumSquare=81;
 

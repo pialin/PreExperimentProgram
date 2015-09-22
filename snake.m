@@ -8,7 +8,9 @@ close all;
 clear;
 sca;
 %键盘响应设置
+%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C取消这一状态）
 ListenChar(2);
+%限制KbCheck响应的按键范围（只有Esc键及上下左右方向键可以触发KbCheck）
 RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow')]);
 %修改工作路径至当前M文件所在目录
 cd mfilename('fullpath');
@@ -114,8 +116,8 @@ NumAudioChannel = 2;
 AudioStartTime = 0;
 %等待声音真正播放后退出语句执行下面语句
 WaitUntilDeviceStart = 1;
-%音频重放次数，仅需播放一次
-AudioRepetition = 1;
+%音频重放次数，无限重放直到执行 PsychPortAudio('Open',...)
+AudioRepetition = 0;
 
 
 % 创建PortAudio对象，对应的参数如下
@@ -139,7 +141,7 @@ vbl = Screen('Flip', PointerWindow);
 %%
 %开始
 %CursorPos用于存储的光标位置变化情况，每一列分别代表一次位置的变动，第一行代表光标在方块矩阵的第几列，第二行代表光标在方块矩阵的第几行
-PosCursor = zeros(2,MaxNumStep);
+PosCursor = zeros(2,NumMaxStepPerTrial*NumTrial);
 %给定初始光标位置，即第一行第一列
 PosCursor(:,1) = 1;
 PosTarget = zeros(2,NumTrial);
@@ -147,6 +149,12 @@ PosTarget = zeros(2,NumTrial);
 KeyDistance = zeros(2,1);
 PosNextTarget = zeros(2,1);
 
+NumStep = 0;
+HitTarget = false;
+
+%首次调用耗时较长的函数
+KbCheck;
+KbWait([],1);
 
 %随机地生成下一个目标点相对当前目标点横向偏移KeyDistance(1)和纵向偏移KeyDistance(2)
 %这个目标点与原目标点偏移相加必须大于1，并且不超过矩阵的范围
@@ -164,19 +172,38 @@ for trial = 1:NumTrial
     
 end
 
-%首次调用耗时较长的函数
-KbCheck;
-KbWait([],1);
-
-StartTime =GetSecs;
-NumStep = 0;
-
-for trial= 1:numTrial
-
+for trial =1:NumTrial
+    if NumStep> NumMaxStepPerTrial*NumTrial
+        if exist('HandlePortAudio','var')
+            
+            %关闭PortAudio对象
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            
+            %clear HandlePortAudio ;
+            
+        end
+        %恢复屏幕显示优先级
+        Priority(0);
+        %关闭所有窗口对象
+        sca;
+        
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
+        
+        return;
+        
+    end
+    
 HitTarget = false;
+
+while HitTarget == false && NumStep<=NumMaxStepPerTrial
+
+
 KeyDistance = PosCuror(:,NumStep+1)-PosTarget(:,NumTrial);
 
-while HitTarget == false
+
     
 switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
 
@@ -333,11 +360,9 @@ end
         end
     end
  
-     
-   
-    
-    
-    
+      
+end
+
 end
 
 
