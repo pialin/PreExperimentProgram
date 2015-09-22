@@ -21,3 +21,6 @@ NumMaxStepPerTrial=100;
 %方块数
 NumSquare=81;
 
+%加载提示音数据
+load DataHintAudio.mat;
+

@@ -129,8 +129,12 @@ AudioRepetition = 0;
 HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChannel);
 
 
-%新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
-HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
+%新建Buffer用于存放提示音数据
+HandleRollBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataRoll);
+HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataOut);
+HandleHitBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataHit);
+HandleFinishBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataFinish);
+
 
 %优先级设置
 Priority(LevelTopPriority);
