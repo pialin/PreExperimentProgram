@@ -130,10 +130,10 @@ HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChann
 
 
 %新建Buffer用于存放提示音数据
-HandleRollBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataRoll);
-HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataOut);
-HandleHitBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataHit);
-HandleFinishBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,AudioDataFinish);
+HandleRollBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll;AudioDataRoll]);
+HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataOut;AudioDataOut]);
+HandleHitBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll,AudioDataHit;AudioDataRoll,AudioDataHit]);
+HandleFinishBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataFinish;AudioDataFinish]);
 
 
 %优先级设置
@@ -279,8 +279,8 @@ end
     
     
     %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
-                                                  AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,TimeGapSilence*SampleRate,AudioAudioDataLeft);
+                                                  zeros(1,TimeGapSilence*SampleRateAudio),AudioDataRight]);
     
     %播放声音
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
@@ -324,6 +324,8 @@ end
         return;
         
     end
+    
+    PsychPortAudio('Volume', HandlePortAudio, VolumeHint);
         
     %若光标超出了边界   
     if any(TempPosCursor>NumSquarePerRow) || any(TempPosCursor<1)
@@ -331,11 +333,13 @@ end
         PosCursor(:,NumStep+1)=PosCursor(:,NumStep);
         
         %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-        PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
-            AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+        PsychPortAudio('FillBuffer', HandlePortAudio,HandleOutBuffer);
         
         %播放声音
-        PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+        PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+        
+        
+        WaitSecs(numel(AudioDataOut)/AudioSampleRate);
         
     else
         
@@ -346,20 +350,21 @@ end
             FlagHitTarget = true;
             %播放移动和命中声音
             %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-            PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
-                AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+            PsychPortAudio('FillBuffer', HandleHitBuffer);
             
             %播放声音
             PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+            
+            WaitSecs((numel(AudioDataRoll)+numel(AudioDataHit))/AudioSampleRate);
         %若光标还未到达目标点
         else
             %播放移动声音
             %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-            PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,TimeGapSilence*SampleRateAudio);
-                AudioDataRight,zeros(1,TimeGapSilence*SampleRateAudio)]);
+            PsychPortAudio('FillBuffer', HandlePortAudio,HandleRollBuffer);
             
             %播放声音
             PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+            WaitSecs(numel(AudioDataRoll)/AudioSampleRate);
             
         end
     end
@@ -368,6 +373,24 @@ end
 end
 
 end
+
+ 
+%将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+PsychPortAudio('FillBuffer', HandlePortAudio,HandleFinshBuffer);
+
+%播放声音
+PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+WaitSecs(numel(AudioDataFinish)/AudioSampleRate);
+
+for frame = 1:FramePerSecond
+    
+
+
+    
+end
+
+
+
 
 
 %如果程序执行出错则执行下面程序

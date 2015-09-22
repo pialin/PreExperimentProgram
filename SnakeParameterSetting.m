@@ -7,9 +7,12 @@ RangeNextTarget = ceil(NumSquarePerRow/2);
 %最小音量设置（即光标与目标点距离最远时的音量大小）
 MinAudioVolume = 0.2;
 
+%提示音音量设置
+VolumeHint = 0.8;
+
 
 %声音间隔时间（即两次编码声音之间的无声时长，单位：秒）
-TimeGapSilence = 3;
+TimeGapSilence = 2;
 
 %每次移动光标等待时长（超过时长自动退出程序,单位：秒）
 TimeWaitPerMove = 100;
@@ -23,4 +26,9 @@ NumSquare=81;
 
 %加载提示音数据
 load DataHintAudio.mat;
+
+AudioDataHit = audioread('Hit.wav')';
+AudioDataOut = audioread('Out.wav')';
+AudioDataRoll = audioread('Roll.wav')';
+AudioDataFinish = audioread('Finish.wav')';
 
