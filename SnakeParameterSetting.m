@@ -14,11 +14,6 @@ TimeGapSilence = 2;
 
 
 
-%%
-%下一个目标点的出现范围限定
-%即将下一个目标点相对于原目标点的横/纵向偏移限制在RangeNextTarget之内
-%默认值为ceil(NumSquarePerRow/2)
-RangeNextTarget = ceil(NumSquarePerRow/2);
 
 %%
 %时间参数设置
@@ -41,8 +36,6 @@ TimeWaitPerMove = 100;
 NumMaxStepPerTrial=100;
 
 
-
-
 %%
 %显示参数设定
 
@@ -57,6 +50,12 @@ NumSquare=81;
 
 %根据方块计算每一行/列的方块数目
 NumSquarePerRow = sqrt(NumSquare);
+
+
+%下一个目标点的出现范围限定
+%即将下一个目标点相对于原目标点的横/纵向偏移限制在RangeNextTarget之内
+%默认值为ceil(NumSquarePerRow/2)
+RangeNextTarget = ceil(NumSquarePerRow/2);
 
 %方块大小(单位：像素)
 %若不作指定则按照默认值设置

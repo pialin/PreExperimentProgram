@@ -7,16 +7,11 @@
 close all;
 clear;
 sca;
-%键盘响应设置
-%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
-ListenChar(2);
-%限制KbCheck响应的按键范围（只有Esc键及上下左右方向键可以触发KbCheck）
-RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow')]);
 
 %修改工作路径至当前M文件所在目录
 Path = mfilename('fullpath');
 PosFileSep = strfind(Path,filesep);
-cd(Path(PosFileSep(end)));
+cd(Path(1:PosFileSep(end)));
 
 %%
 %随机数生成器状态设置
@@ -33,6 +28,12 @@ rng('shuffle');%Matlab R2012之后版本
 %在创建窗口后立刻执行“Screen('ColorRange', PointerWindow, 1, [],1);”将颜色的设定方式由3个
 %8位无符号组成的三维向量改成3个0到1的浮点数三维向量，目的是为了同时兼容不同颜色位数的显示器（比如16位显示器）
 PsychDefaultSetup(2);
+
+%键盘响应设置
+%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
+% ListenChar(2);
+%限制KbCheck响应的按键范围（只有Esc键及上下左右方向键可以触发KbCheck）
+RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow')]);
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
@@ -60,13 +61,13 @@ TimePerFlip = Screen('GetFlipInterval', PointerWindow);
 FramePerSecond = 1/TimePerFlip;
 
 %获取可用的优先级？？
-LevelTopPriority = MaxPriority(PointerWindow);
+LevelTopPriority = MaxPriority(PointerWindow,'GetSecs','WaitSecs','KbCheck','KbWait','sound');
 
 %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
 %调用SnakeParameterSetting.m设置相应参数
-SankeParameterSetting;
+SnakeParameterSetting;
 
 %字体和大小设定
 Screen('TextFont',PointerWindow, NameFont);
@@ -146,9 +147,6 @@ PosCursor = zeros(2,NumMaxStepPerTrial*NumTrial);
 PosCursor(:,1) = 1;
 PosTarget = zeros(2,NumTrial);
 
-KeyDistance = zeros(2,1);
-PosNextTarget = zeros(2,1);
-
 NumStep = 1;
 
 
@@ -160,7 +158,10 @@ KbWait([],1);
 %这个目标点与原目标点偏移相加必须大于1，并且不超过矩阵的范围
 for trial = 1:NumTrial
     
-    while sum(KeyDistance)<=1 || any(PosNextTarget>NumSquarePerRow) || any(PosNextTarget<1)
+    KeyDistance = zeros(2,1);
+    PosNextTarget = zeros(2,1);
+    
+    while sum(abs(KeyDistance))<=1 || any(PosNextTarget>NumSquarePerRow) || any(PosNextTarget<1)
         %横/纵向的偏移范围限制在正负RangeNextTarget之间
         KeyDistance = randi([-1*RangeNextTarget,RangeNextTarget],2,1);
         %计算下一个坐标
@@ -173,80 +174,81 @@ for trial = 1:NumTrial
     end
     
     PosTarget(:,trial) = PosNextTarget;
+
     
 end
 
 
 
 %优先级设置
-Priority(LevelTopPriority);
+% Priority(LevelTopPriority);
 %进行第一次帧刷新获取基准时间
 vbl = Screen('Flip', PointerWindow);
 
 %%
 %等待阶段
 %时长为准备时长减去倒计时时长
-for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
-    %绘制提示语
-    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
-    %提示程序所有内容已绘制完成
-    Screen('DrawingFinished', PointerWindow);
-    
-    %读取键盘输入，若Esc键被按下则立刻退出程序
-    [IsKeyDown,~,KeyCode] = KbCheck;
-    if IsKeyDown && KeyCode(KbName('ESCAPE'))
-        if exist('HandlePortAudio','var')
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-%             clear HandlePortAudio ;
-        end
-        Priority(0);
-        sca;
-        
-        %恢复键盘设定
-        ListenChar(0);
-        RestrictKeysForKbCheck([]);
-        return;
-    end
-    
-    %帧刷新
-    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-    
-end
-
-%%
-%倒计时阶段
-
-for frame =1:round(TimeCountdown*FramePerSecond)
-    %计算倒计时剩余时间
-    TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
-    %绘制倒计时数字
-    DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
-    Screen('DrawingFinished', PointerWindow);
-    
-    %扫描键盘，如果Esc键被按下则退出程序
-    [IsKeyDown,~,KeyCode] = KbCheck;
-    if IsKeyDown && KeyCode(KbName('ESCAPE'))
-        if exist('HandlePortAudio','var')
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-%             clear HandlePortAudio ;
-        end
-        Priority(0);
-        sca;
-        
-        %恢复键盘设定
-        ListenChar(0);
-        RestrictKeysForKbCheck([]);
-        return;
-        
-    end
-    
-    
-    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-    
-end
-
+% for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+%     %绘制提示语
+%     DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+%     %提示程序所有内容已绘制完成
+%     Screen('DrawingFinished', PointerWindow);
+%     
+%     %读取键盘输入，若Esc键被按下则立刻退出程序
+%     [IsKeyDown,~,KeyCode] = KbCheck;
+%     if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%         if exist('HandlePortAudio','var')
+%             PsychPortAudio('Stop', HandlePortAudio);
+%             PsychPortAudio('Close', HandlePortAudio);
+% %             clear HandlePortAudio ;
+%         end
+%         Priority(0);
+%         sca;
+%         
+%         %恢复键盘设定
+%         ListenChar(0);
+%         RestrictKeysForKbCheck([]);
+%         return;
+%     end
+%     
+%     %帧刷新
+%     vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+%     
+% end
+% 
+% %%
+% %倒计时阶段
+% 
+% for frame =1:round(TimeCountdown*FramePerSecond)
+%     %计算倒计时剩余时间
+%     TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
+%     %绘制倒计时数字
+%     DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
+%     Screen('DrawingFinished', PointerWindow);
+%     
+%     %扫描键盘，如果Esc键被按下则退出程序
+%     [IsKeyDown,~,KeyCode] = KbCheck;
+%     if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%         if exist('HandlePortAudio','var')
+%             PsychPortAudio('Stop', HandlePortAudio);
+%             PsychPortAudio('Close', HandlePortAudio);
+% %             clear HandlePortAudio ;
+%         end
+%         Priority(0);
+%         sca;
+%         
+%         %恢复键盘设定
+%         ListenChar(0);
+%         RestrictKeysForKbCheck([]);
+%         return;
+%         
+%     end
+%     
+%     
+%     vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+%     
+% end
+% 
 
 
 
@@ -254,15 +256,17 @@ end
 for trial =1:NumTrial
     
     %绘制方块和圆点
+    IndexTarget = PosTarget(1,trial)+NumSquarePerRow*(PosTarget(2,trial)-1);
+    IndexCursor = PosCursor(1,1:NumStep)+NumSquarePerRow*(PosCursor(2,1:NumStep)-1);
     Screen('FillRect', PointerWindow,ColorSquare,RectSquare);    
-    Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,PosTarget(trial)),ceil(SizeDot));
-    Screen('FillOval', PointerWindow,ColorDot,RectDot(:,PosCursor(1:NumStep)),ceil(SizeDot));
+    Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,IndexTarget),ceil(SizeDot));
+    Screen('FillOval', PointerWindow,ColorDot,RectDot(:,IndexCursor),ceil(SizeDot));
 
     
     if NumStep > 1
-        XLine = reshape(repmat(XSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+        XLine = reshape(repmat(SequenceXSquareCenter(IndexCursor),2,1),1,[]);
         
-        YLine = reshape(repmat(YSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+        YLine = reshape(repmat(SequenceYSquareCenter(IndexCursor),2,1),1,[]);
         
         Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
         
@@ -278,7 +282,7 @@ FlagHitTarget = false;
 
 while FlagHitTarget == false && NumStep<=NumMaxStepPerTrial
 
-KeyDistance = PosTarget(:,NumTrial)-PosCuror(:,NumStep);
+KeyDistance = PosTarget(:,NumTrial)-PosCursor(:,NumStep);
    
 switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
 
@@ -350,7 +354,7 @@ end
     
     
     %将编码声音数据填入Buffer
-    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,TimeGapSilence*SampleRate,AudioAudioDataLeft);
+    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,TimeGapSilence*SampleRateAudio),AudioDataLeft;
                                                   zeros(1,TimeGapSilence*SampleRateAudio),AudioDataRight]);
     
     PsychPortAudio('Stop', HandlePortAudio);
@@ -359,7 +363,16 @@ end
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
    
     %等待方向键或者Esc键被按下
-    [ ~, KeyCode, ~] = KbWait([],0,GetSecs+TimeWaitPerMove);
+    StartTime = GetSecs;
+    
+     
+    
+     pause;
+        
+    [ IsAnyKeyPressed, ~,KeyCode, ~] = KbCheck;
+    
+    
+    
     %等待按键松开 
     KbWait([],1);
     
@@ -370,9 +383,9 @@ end
         elseif KeyCode(KbName('RightArrow'))
             TempPosCursor = PosCursor(:,NumStep-1)+[1;0];  
         elseif KeyCode(KbName('UpArrow'))
-            TempPosCursor = PosCursor(:,NumStep-1)+[0;1];  
-        elseif KeyCode(KbName('DownArrow'))
             TempPosCursor = PosCursor(:,NumStep-1)+[0;-1];  
+        elseif KeyCode(KbName('DownArrow'))
+            TempPosCursor = PosCursor(:,NumStep-1)+[0;1];  
         end
         
     else
@@ -421,21 +434,20 @@ end
         PosCursor(:,NumStep)=TempPosCursor;
         
         %绘制方块和圆点
+        
+        IndexTarget = PosTarget(1,trial)+NumSquarePerRow*(PosTarget(2,trial)-1);
+        IndexCursor = PosCursor(1,1:NumStep)+NumSquarePerRow*(PosCursor(2,1:NumStep)-1);
+        
         Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-        Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,PosTarget(trial)),ceil(SizeDot));
-        Screen('FillOval', PointerWindow,ColorDot,RectDot(:,PosCursor(1:NumStep)),ceil(SizeDot));
+        Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,IndexTarget),ceil(SizeDot));
+        Screen('FillOval', PointerWindow,ColorDot,RectDot(:,IndexCursor),ceil(SizeDot));
         
+        XLine = reshape(repmat(SequenceXSquareCenter(IndexCursor),2,1),1,[]);
         
-        if NumStep > 1
-            XLine = reshape(repmat(XSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
-            
-            YLine = reshape(repmat(YSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
-            
-            Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
-            
-            
-        end
+        YLine = reshape(repmat(SequenceYSquareCenter(IndexCursor),2,1),1,[]);
         
+        Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
+    
         Screen('DrawingFinished', PointerWindow);
         
         vbl = Screen('Flip', PointerWindow);
@@ -555,6 +567,7 @@ catch Error
     %恢复键盘设定
     ListenChar(0);
     RestrictKeysForKbCheck([]);
+    
     
     %在命令行输出前面的错误提示信息
     rethrow(Error);
