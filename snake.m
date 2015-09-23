@@ -149,7 +149,7 @@ PosTarget = zeros(2,NumTrial);
 KeyDistance = zeros(2,1);
 PosNextTarget = zeros(2,1);
 
-NumStep = 0;
+NumStep = 1;
 
 
 %首次调用耗时较长的函数
@@ -249,13 +249,36 @@ end
 
 
 
+
+
 for trial =1:NumTrial
+    
+    %绘制方块和圆点
+    Screen('FillRect', PointerWindow,ColorSquare,RectSquare);    
+    Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,PosTarget(trial)),ceil(SizeDot));
+    Screen('FillOval', PointerWindow,ColorDot,RectDot(:,PosCursor(1:NumStep)),ceil(SizeDot));
+
+    
+    if NumStep > 1
+        XLine = reshape(repmat(XSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+        
+        YLine = reshape(repmat(YSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+        
+        Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
+        
+        
+    end
+    
+    Screen('DrawingFinished', PointerWindow);
+    
+    vbl = Screen('Flip', PointerWindow);
+   
    
 FlagHitTarget = false;
 
 while FlagHitTarget == false && NumStep<=NumMaxStepPerTrial
 
-KeyDistance = PosCuror(:,NumStep+1)-PosTarget(:,NumTrial);
+KeyDistance = PosTarget(:,NumTrial)-PosCuror(:,NumStep);
    
 switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
 
@@ -330,6 +353,8 @@ end
     PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,TimeGapSilence*SampleRate,AudioAudioDataLeft);
                                                   zeros(1,TimeGapSilence*SampleRateAudio),AudioDataRight]);
     
+    PsychPortAudio('Stop', HandlePortAudio);
+                                              
     %播放声音
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
    
@@ -341,13 +366,13 @@ end
     if any(KeyCode) && ~KeyCode(KbName('ESCAPE'))
         NumStep = NumStep +1;
         if KeyCode(KbName('LeftArrow'))
-            TempPosCursor = PosCursor(:,NumStep)+[-1;0];  
+            TempPosCursor = PosCursor(:,NumStep-1)+[-1;0];  
         elseif KeyCode(KbName('RightArrow'))
-            TempPosCursor = PosCursor(:,NumStep)+[1;0];  
+            TempPosCursor = PosCursor(:,NumStep-1)+[1;0];  
         elseif KeyCode(KbName('UpArrow'))
-            TempPosCursor = PosCursor(:,NumStep)+[0;1];  
+            TempPosCursor = PosCursor(:,NumStep-1)+[0;1];  
         elseif KeyCode(KbName('DownArrow'))
-            TempPosCursor = PosCursor(:,NumStep)+[0;-1];  
+            TempPosCursor = PosCursor(:,NumStep-1)+[0;-1];  
         end
         
     else
@@ -378,10 +403,12 @@ end
     %若光标超出了边界   
     if any(TempPosCursor>NumSquarePerRow) || any(TempPosCursor<1)
         
-        PosCursor(:,NumStep+1)=PosCursor(:,NumStep);
+        PosCursor(:,NumStep)=PosCursor(:,NumStep-1);
         
         %将之前保存在HandleOutBuffer里面的数据填入音频播放的Buffer里
         PsychPortAudio('FillBuffer', HandlePortAudio,HandleOutBuffer);
+        
+        PsychPortAudio('Stop', HandlePortAudio);
         
         %播放声音
         PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
@@ -391,7 +418,29 @@ end
         
     else
         
-        PosCursor(:,NumStep+1)=TempPosCursor;
+        PosCursor(:,NumStep)=TempPosCursor;
+        
+        %绘制方块和圆点
+        Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
+        Screen('FillOval', PointerWindow,ColorTarget,RectDot(:,PosTarget(trial)),ceil(SizeDot));
+        Screen('FillOval', PointerWindow,ColorDot,RectDot(:,PosCursor(1:NumStep)),ceil(SizeDot));
+        
+        
+        if NumStep > 1
+            XLine = reshape(repmat(XSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+            
+            YLine = reshape(repmat(YSquareCenter((PosCursor(1:NumStep))),2,1),1,[]);
+            
+            Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
+            
+            
+        end
+        
+        Screen('DrawingFinished', PointerWindow);
+        
+        vbl = Screen('Flip', PointerWindow);
+        
+        
         %若光标到达目标点
         if PosCursor(:,NumStep) == PosTarget(:,trial)
             
@@ -400,6 +449,7 @@ end
             %将之前保存在HandleHitBuffer里面的声音数据填入音频播放的Buffer里
             PsychPortAudio('FillBuffer', HandleHitBuffer);
             
+            PsychPortAudio('Stop', HandlePortAudio);
             %播放声音
             PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
             
@@ -449,6 +499,8 @@ end
 PsychPortAudio('Volume', HandlePortAudio, VolumeHint);
 %将之前保存在HandleFinishBuffer里面的数据填入音频播放的Buffer里
 PsychPortAudio('FillBuffer', HandlePortAudio,HandleFinshBuffer);
+
+PsychPortAudio('Stop', HandlePortAudio);
 
 %播放声音
 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);

@@ -127,7 +127,7 @@ else
     
      AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio); 
      
-     load DataPureTone.mat DataPureTone
+     load DataPureTone.mat DataPureTone;
 
 
 end

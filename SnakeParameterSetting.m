@@ -35,6 +35,9 @@ NumMaxStepPerTrial=100;
 %方块数
 NumSquare=81;
 
+%根据方块计算每一行/列的方块数目
+NumSquarePerRow = sqrt(NumSquare);
+
 
 %提示信息
 MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
@@ -48,4 +51,99 @@ AudioDataHit = audioread('Hit.wav')';
 AudioDataOut = audioread('Out.wav')';
 AudioDataRoll = audioread('Roll.wav')';
 AudioDataFinish = audioread('Finish.wav')';
+
+%Trial数 （白噪->编码声音->无声 为一个Trail）
+NumTrial = 3;
+
+%编码声音呈现时长（A编码方案表示每个点的编码声音时长，B编码方案指每个图案编码的声音时长）
+TimeCodedSound = 1;
+
+%显示参数设置
+
+%屏幕底色（缺省值为黑色，可选颜色为black，white,red,green,blue,gray,或者可以用
+%一个三维向量直接指定红绿蓝三原色比例,在此均为这三个元素均应为0-1之间的数值，下同）
+ColorBackground = black;
+
+%方块颜色(缺省值为白色,即[1,1,1])
+ColorSquare = white;
+
+%方块大小(单位：像素)
+%若不作指定则按照默认值设置
+% SizeSquare = SizeScreenY/(NumSquarePerRow+2)/1.2;
+% GapWidth = 0.2* SizeSquare;
+
+SizeSquare = SizeScreenY/(NumSquarePerRow+2)/1.1;
+GapWidth = 0.1* SizeSquare;
+
+%圆点颜色(缺省值为红色,即[1,0,0])
+ColorDot  = red;
+ColorTarget =black;
+
+%圆点大小（默认直径为方块边长乘以0.5）
+SizeDot = 0.5* SizeSquare ;
+
+%用于训练程序的圆点颜色
+ColorDotUncoded = blue; 
+ColorDotCoded = red;
+
+
+%用于训练的连线颜色和宽度
+ColorLine = red;
+WidthLine = 7;%已经最大
+
+%字体名称
+NameFont = '微软雅黑';
+%字体大小
+SizeFont = 50;
+%字体颜色
+ColorFont = white;
+
+%%
+%音频参数设置
+
+%音频音量设置
+AudioVolume = 0.5;
+
+%编码声音频率
+MatrixFreq = [  800 1008 1267
+                400  504  635 
+                200  252  317  ];
+            
+MatrixLeftAmp = [ 0.8 0.5 0.2
+                  0.8 0.5 0.2
+                  0.8 0.5 0.2 ];
+
+MatrixRightAmp = [ 0.2 0.5 0.8
+                   0.2 0.5 0.8
+                   0.2 0.5 0.8 ];  
+               
+MatrixFreq= MatrixFreq';
+MatrixLeftAmp =MatrixLeftAmp';
+MatrixRightAmp = MatrixRightAmp';
+
+%音频采样率（默认为48Hz,单位：Hz）
+SampleRateAudio = 48000;
+
+%音频数据生成部分
+load DataPureTone.mat;
+
+if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
+        SampleRateAudio==SampleRateAudio_mat &&...
+        TimeCodedSound == TimeCodedSound_mat &&...
+        isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
+        isequal(MatrixRightAmp,MatrixRightAmp_mat)
+        
+    clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+
+else
+    
+     AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio); 
+     
+     load DataPureTone.mat DataPureTone
+
+
+end
+
+
+
 
