@@ -10,6 +10,17 @@ MinAudioVolume = 0.2;
 %提示音音量设置
 VolumeHint = 0.8;
 
+%%
+%时间参数设置
+
+%准备时长(包括倒计时时长)
+TimePrepare = 5; 
+
+%倒计时秒数
+TimeCountdown = 3; 
+
+%实验结束显示时长
+TimeMessageFinish =2;
 
 %声音间隔时间（即两次编码声音之间的无声时长，单位：秒）
 TimeGapSilence = 2;
@@ -23,6 +34,12 @@ NumMaxStepPerTrial=100;
 
 %方块数
 NumSquare=81;
+
+
+%提示信息
+MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
+
+MessageFinish = double('实验结束：)');
 
 %加载提示音数据
 load DataHintAudio.mat;

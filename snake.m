@@ -8,12 +8,15 @@ close all;
 clear;
 sca;
 %键盘响应设置
-%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C取消这一状态）
+%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
 ListenChar(2);
 %限制KbCheck响应的按键范围（只有Esc键及上下左右方向键可以触发KbCheck）
 RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow')]);
+
 %修改工作路径至当前M文件所在目录
-cd mfilename('fullpath');
+Path = mfilename('fullpath');
+PosFileSep = strfind(Path,filesep);
+cd(Path(PosFileSep(end)));
 
 %%
 %随机数生成器状态设置
@@ -62,8 +65,8 @@ LevelTopPriority = MaxPriority(PointerWindow);
 %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
 [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
 
-%调用ParameterSetting.m设置相应参数
-ParameterSetting;
+%调用SnakeParameterSetting.m设置相应参数
+SankeParameterSetting;
 
 %字体和大小设定
 Screen('TextFont',PointerWindow, NameFont);
@@ -116,7 +119,7 @@ NumAudioChannel = 2;
 AudioStartTime = 0;
 %等待声音真正播放后退出语句执行下面语句
 WaitUntilDeviceStart = 1;
-%音频重放次数，无限重放直到执行 PsychPortAudio('Open',...)
+%音频重放次数，无限重放直到执行 PsychPortAudio('Stop',...)
 AudioRepetition = 0;
 
 
@@ -135,13 +138,6 @@ HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataOut;Au
 HandleHitBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll,AudioDataHit;AudioDataRoll,AudioDataHit]);
 HandleFinishBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataFinish;AudioDataFinish]);
 
-
-%优先级设置
-Priority(LevelTopPriority);
-%进行第一次帧刷新获取基准时间
-vbl = Screen('Flip', PointerWindow);
-
-
 %%
 %开始
 %CursorPos用于存储的光标位置变化情况，每一列分别代表一次位置的变动，第一行代表光标在方块矩阵的第几列，第二行代表光标在方块矩阵的第几行
@@ -154,7 +150,7 @@ KeyDistance = zeros(2,1);
 PosNextTarget = zeros(2,1);
 
 NumStep = 0;
-HitTarget = false;
+
 
 %首次调用耗时较长的函数
 KbCheck;
@@ -168,47 +164,99 @@ for trial = 1:NumTrial
         %横/纵向的偏移范围限制在正负RangeNextTarget之间
         KeyDistance = randi([-1*RangeNextTarget,RangeNextTarget],2,1);
         %计算下一个坐标
-        PosNextTarget = PosCursor(:,trial)+KeyDistance;
-        
+        if trial ==1
+            PosNextTarget =  PosCursor(:,1)+KeyDistance;
+        else
+            PosNextTarget =  PosTarget(:,trial-1)+KeyDistance;
+        end
+            
     end
     
     PosTarget(:,trial) = PosNextTarget;
     
 end
 
-for trial =1:NumTrial
-    if NumStep> NumMaxStepPerTrial*NumTrial
+
+
+%优先级设置
+Priority(LevelTopPriority);
+%进行第一次帧刷新获取基准时间
+vbl = Screen('Flip', PointerWindow);
+
+%%
+%等待阶段
+%时长为准备时长减去倒计时时长
+for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+    %绘制提示语
+    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+    %提示程序所有内容已绘制完成
+    Screen('DrawingFinished', PointerWindow);
+    
+    %读取键盘输入，若Esc键被按下则立刻退出程序
+    [IsKeyDown,~,KeyCode] = KbCheck;
+    if IsKeyDown && KeyCode(KbName('ESCAPE'))
         if exist('HandlePortAudio','var')
-            
-            %关闭PortAudio对象
             PsychPortAudio('Stop', HandlePortAudio);
             PsychPortAudio('Close', HandlePortAudio);
-            
-            %clear HandlePortAudio ;
-            
+%             clear HandlePortAudio ;
         end
-        %恢复屏幕显示优先级
         Priority(0);
-        %关闭所有窗口对象
         sca;
         
         %恢复键盘设定
         ListenChar(0);
         RestrictKeysForKbCheck([]);
+        return;
+    end
+    
+    %帧刷新
+    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+    
+end
+
+%%
+%倒计时阶段
+
+for frame =1:round(TimeCountdown*FramePerSecond)
+    %计算倒计时剩余时间
+    TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
+    %绘制倒计时数字
+    DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
+    Screen('DrawingFinished', PointerWindow);
+    
+    %扫描键盘，如果Esc键被按下则退出程序
+    [IsKeyDown,~,KeyCode] = KbCheck;
+    if IsKeyDown && KeyCode(KbName('ESCAPE'))
+        if exist('HandlePortAudio','var')
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+%             clear HandlePortAudio ;
+        end
+        Priority(0);
+        sca;
         
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
         return;
         
     end
     
-HitTarget = false;
+    
+    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+    
+end
 
-while HitTarget == false && NumStep<=NumMaxStepPerTrial
 
+
+for trial =1:NumTrial
+   
+FlagHitTarget = false;
+
+while FlagHitTarget == false && NumStep<=NumMaxStepPerTrial
 
 KeyDistance = PosCuror(:,NumStep+1)-PosTarget(:,NumTrial);
-
-
-    
+   
 switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
 
     case '01'
@@ -278,7 +326,7 @@ end
 
     
     
-    %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+    %将编码声音数据填入Buffer
     PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,TimeGapSilence*SampleRate,AudioAudioDataLeft);
                                                   zeros(1,TimeGapSilence*SampleRateAudio),AudioDataRight]);
     
@@ -288,7 +336,7 @@ end
     %等待方向键或者Esc键被按下
     [ ~, KeyCode, ~] = KbWait([],0,GetSecs+TimeWaitPerMove);
     %等待按键松开 
-    KbWait([],1,GetSecs+TimeWaitPerMove);
+    KbWait([],1);
     
     if any(KeyCode) && ~KeyCode(KbName('ESCAPE'))
         NumStep = NumStep +1;
@@ -332,7 +380,7 @@ end
         
         PosCursor(:,NumStep+1)=PosCursor(:,NumStep);
         
-        %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+        %将之前保存在HandleOutBuffer里面的数据填入音频播放的Buffer里
         PsychPortAudio('FillBuffer', HandlePortAudio,HandleOutBuffer);
         
         %播放声音
@@ -349,7 +397,7 @@ end
             
             FlagHitTarget = true;
             %播放移动和命中声音
-            %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+            %将之前保存在HandleHitBuffer里面的声音数据填入音频播放的Buffer里
             PsychPortAudio('FillBuffer', HandleHitBuffer);
             
             %播放声音
@@ -359,7 +407,7 @@ end
         %若光标还未到达目标点
         else
             %播放移动声音
-            %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+            %将之前保存在HandleRollBuffer里面的声音数据填入音频播放的Buffer里
             PsychPortAudio('FillBuffer', HandlePortAudio,HandleRollBuffer);
             
             %播放声音
@@ -372,24 +420,66 @@ end
       
 end
 
+if NumStep> NumMaxStepPerTrial
+    if exist('HandlePortAudio','var')
+        
+        %关闭PortAudio对象
+        PsychPortAudio('Stop', HandlePortAudio);
+        PsychPortAudio('Close', HandlePortAudio);
+        
+        %clear HandlePortAudio ;
+        
+    end
+    %恢复屏幕显示优先级
+    Priority(0);
+    %关闭所有窗口对象
+    sca;
+    
+    %恢复键盘设定
+    ListenChar(0);
+    RestrictKeysForKbCheck([]);
+    
+    return;
+    
 end
 
- 
-%将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+
+end
+
+PsychPortAudio('Volume', HandlePortAudio, VolumeHint);
+%将之前保存在HandleFinishBuffer里面的数据填入音频播放的Buffer里
 PsychPortAudio('FillBuffer', HandlePortAudio,HandleFinshBuffer);
 
 %播放声音
 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
 WaitSecs(numel(AudioDataFinish)/AudioSampleRate);
 
-for frame = 1:FramePerSecond
+for frame = 1:round(TimeMessgeFinish * FramePerSecond)
     
-
-
+   DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
+    Screen('DrawingFinished', PointerWindow);
     
+    %扫描键盘，如果Esc键被按下则退出程序
+    [IsKeyDown,~,KeyCode] = KbCheck;
+    if IsKeyDown && KeyCode(KbName('ESCAPE'))
+        if exist('HandlePortAudio','var')
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+%             clear HandlePortAudio ;
+        end
+        
+        Priority(0);
+        sca;
+        
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
+        return;
+        
+        
+    end
+
 end
-
-
 
 
 
