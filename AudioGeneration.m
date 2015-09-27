@@ -28,8 +28,8 @@ DataPureTone(2,i,:) = MatrixRightAmp(i)*sin(2*pi*MatrixFreq(i).*linspace(0,TimeC
 DataPureTone(1,i,:) = reshape(DataPureTone(1,i,:),1,TimeCodedSound*SampleRateAudio).*SmoothSequence;
 DataPureTone(2,i,:) = reshape(DataPureTone(2,i,:),1,TimeCodedSound*SampleRateAudio).*SmoothSequence;
 
-DataPureTone(1,i,:) = reshape(DataPureTone(1,i,:),1,TimeCodedSound*SampleRateAudio);
-DataPureTone(2,i,:) = reshape(DataPureTone(2,i,:),1,TimeCodedSound*SampleRateAudio);
+% DataPureTone(1,i,:) = reshape(DataPureTone(1,i,:),1,TimeCodedSound*SampleRateAudio);
+% DataPureTone(2,i,:) = reshape(DataPureTone(2,i,:),1,TimeCodedSound*SampleRateAudio);
 
 
 end

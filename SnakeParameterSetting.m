@@ -62,6 +62,7 @@ RangeNextTarget = ceil(NumSquarePerRow/2);
 % SizeSquare = SizeScreenY/(NumSquarePerRow+2)/1.1;
 % GapWidth = 0.2* SizeSquare;
 
+SizeSquareFrame =  SizeScreenY/(NumSquarePerRow+2);
 SizeSquare = SizeScreenY/(NumSquarePerRow+2)/1.1;
 GapWidth = 0.1* SizeSquare;
 
@@ -107,6 +108,7 @@ load DataHintAudio.mat;
 AudioDataHit = audioread('Hit.wav')';
 AudioDataOut = audioread('Out.wav')';
 AudioDataRoll = audioread('Roll.wav')';
+AudioDataRoll = AudioDataRoll(1:24000);
 AudioDataFinish = audioread('Finish.wav')';
 
 
