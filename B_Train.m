@@ -255,14 +255,12 @@ while 1
             AudioDataRight = sum(AudioDataRight,1);
             
             %归一化
-            MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
-            AudioDataRight =  AudioDataRight/MaxAmp;
-            AudioDataLeft =  AudioDataLeft/MaxAmp;
+            AudioData = mapminmax(AudioDataLeft(:),AudioDataRight(:));
             
             
             
             %填充到PortAudio对象的Buffer中
-            PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
+            PsychPortAudio('FillBuffer', HandlePortAudio,reshape(AudioData,2,[]));
             %播放声音
             PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
             

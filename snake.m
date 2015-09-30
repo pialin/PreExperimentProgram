@@ -155,6 +155,96 @@ NumStep = 1;
 KbCheck;
 KbWait([],1);
 
+
+%优先级设置
+Priority(LevelTopPriority);
+%进行第一次帧刷新获取基准时间
+vbl = Screen('Flip', PointerWindow);
+
+%等待阶段
+%时长为准备时长减去倒计时时长
+for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+    %绘制提示语
+    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+    %提示程序所有内容已绘制完成
+    Screen('DrawingFinished', PointerWindow);
+    
+    %读取键盘输入，若Esc键被按下则立刻退出程序
+    [IsKeyDown,~,KeyCode] = KbCheck;
+    if IsKeyDown && KeyCode(KbName('ESCAPE'))
+        if exist('HandlePortAudio','var')
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            %             clear HandlePortAudio ;
+        end
+        Priority(0);
+        sca;
+        
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
+        return;
+    end
+    
+    %帧刷新
+    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+    
+end
+
+%%
+
+%倒计时阶段
+
+%倒计时提示音
+AudioDataLeft = reshape(DataPureTone(1,5,1:round(SampleRateAudio)),1,[]);
+AudioDataRight = reshape(DataPureTone(2,5,1:round(SampleRateAudio)),1,[]);
+
+%归一化
+
+MaxAmp = max([MatrixLeftAmp(5), MatrixRightAmp(5)]);
+
+AudioDataLeft =  AudioDataLeft/MaxAmp;
+AudioDataRight =  AudioDataRight/MaxAmp;
+
+
+PsychPortAudio('FillBuffer', HandlePortAudio,repmat([zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight],1,3));
+
+%播放声音
+PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+
+
+for frame =1:round(TimeCountdown*FramePerSecond)
+    
+    
+    DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
+    Screen('DrawingFinished', PointerWindow);
+    
+    %扫描键盘，如果Esc键被按下则退出程序
+    [IsKeyDown,~,KeyCode] = KbCheck;
+    if IsKeyDown && KeyCode(KbName('ESCAPE'))
+        if exist('HandlePortAudio','var')
+            PsychPortAudio('Stop', HandlePortAudio);
+            PsychPortAudio('Close', HandlePortAudio);
+            %             clear HandlePortAudio ;
+        end
+        Priority(0);
+        sca;
+        
+        %恢复键盘设定
+        ListenChar(0);
+        RestrictKeysForKbCheck([]);
+        return;
+        
+    end
+    
+    
+    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+    
+end
+
+
+PsychPortAudio('Stop', HandlePortAudio);
+
 %随机地生成下一个目标点相对当前目标点横向偏移KeyDistance(1)和纵向偏移KeyDistance(2)
 %这个目标点与原目标点偏移相加必须大于1，并且不超过矩阵的范围
 for trial = 1:NumTrial
@@ -186,84 +276,7 @@ Priority(LevelTopPriority);
 %进行第一次帧刷新获取基准时间
 vbl = Screen('Flip', PointerWindow);
 
-%%
 
-% %倒计时提示音
-% AudioDataLeft = reshape(DataPureTone(1,5,1:round(SampleRateAudio)),1,[]);
-% AudioDataRight = reshape(DataPureTone(2,5,1:round(SampleRateAudio)),1,[]);
-% PsychPortAudio('Volume', HandlePortAudio, VolumeHint);
-% 
-% PsychPortAudio('FillBuffer', HandlePortAudio,repmat([AudioDataLeft,zeros(1,SampleRateAudio);AudioDataRight,zeros(1,SampleRateAudio)],1,3));
-% 
-% %播放声音
-% PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
-% 
-% WaitSecs(10);
-% 
-% PsychPortAudio('Stop', HandlePortAudio);
-%等待阶段
-%时长为准备时长减去倒计时时长
-% for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
-%     %绘制提示语
-%     DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
-%     %提示程序所有内容已绘制完成
-%     Screen('DrawingFinished', PointerWindow);
-%     
-%     %读取键盘输入，若Esc键被按下则立刻退出程序
-%     [IsKeyDown,~,KeyCode] = KbCheck;
-%     if IsKeyDown && KeyCode(KbName('ESCAPE'))
-%         if exist('HandlePortAudio','var')
-%             PsychPortAudio('Stop', HandlePortAudio);
-%             PsychPortAudio('Close', HandlePortAudio);
-% %             clear HandlePortAudio ;
-%         end
-%         Priority(0);
-%         sca;
-%         
-%         %恢复键盘设定
-%         ListenChar(0);
-%         RestrictKeysForKbCheck([]);
-%         return;
-%     end
-%     
-%     %帧刷新
-%     vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-%     
-% end
-% 
-% %%
-% %倒计时阶段
-% 
-% for frame =1:round(TimeCountdown*FramePerSecond)
-%     %计算倒计时剩余时间
-%     TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
-%     %绘制倒计时数字
-%     DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
-%     Screen('DrawingFinished', PointerWindow);
-%     
-%     %扫描键盘，如果Esc键被按下则退出程序
-%     [IsKeyDown,~,KeyCode] = KbCheck;
-%     if IsKeyDown && KeyCode(KbName('ESCAPE'))
-%         if exist('HandlePortAudio','var')
-%             PsychPortAudio('Stop', HandlePortAudio);
-%             PsychPortAudio('Close', HandlePortAudio);
-% %             clear HandlePortAudio ;
-%         end
-%         Priority(0);
-%         sca;
-%         
-%         %恢复键盘设定
-%         ListenChar(0);
-%         RestrictKeysForKbCheck([]);
-%         return;
-%         
-%     end
-%     
-%     
-%     vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-%     
-% end
-% 
 
 for trial =1:NumTrial
     
@@ -354,6 +367,11 @@ end
     AudioDataLeft = reshape(DataPureTone(1,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
     
     AudioDataRight = reshape(DataPureTone(2,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
+    
+    %归一化
+    AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
+    AudioDataLeft = AudioData(1,:);
+    AudioDataRight = AudioData(2,:);
      
     %播放音量设置
 
@@ -383,9 +401,8 @@ end
    
     %等待方向键或者Esc键被按下
 
-    [~,KetCode,~] = KbWait([],0,GetSecs+TimeWaitPerMove);
- 
-    [ IsAnyKeyPressed, ~,KeyCode, ~] = KbCheck;
+    [~,KeyCode,~] = KbWait([],0,GetSecs+TimeWaitPerMove);
+
     
     
     %等待按键松开 

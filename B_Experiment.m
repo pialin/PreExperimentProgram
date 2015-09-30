@@ -214,12 +214,9 @@ for trial =1:NumTrial
     AudioDataRight = sum(AudioDataRight,1);
     
     %归一化
-    MaxAmp = max([MatrixLeftAmp(IndexPressedSquare), MatrixRightAmp(IndexPressedSquare)]);
-    AudioDataRight =  AudioDataRight/MaxAmp;
-    AudioDataLeft =  AudioDataLeft/MaxAmp;
-    
-
-
+    AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
+    AudioDataLeft = AudioData(1,:);
+    AudioDataRight = AudioData(2,:);
     
     
     %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
@@ -259,7 +256,7 @@ for trial =1:NumTrial
     %停止声音播放
     PsychPortAudio('Stop', HandlePortAudio);
     
-    %将编码声音数据填充入Buffer中
+    %把编码声音数据填充到PortAudio对象的Buffer中
     PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
     %播放编码声音
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);

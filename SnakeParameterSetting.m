@@ -19,10 +19,10 @@ TimeGapSilence = 2;
 %时间参数设置
 
 %准备时长(包括倒计时时长，单位：秒)
-TimePrepare = 5; 
+TimePrepare = 10; 
 
 %倒计时秒数（单位：秒）
-TimeCountdown = 3; 
+TimeCountdown = 6; 
 
 %实验结束显示时长（单位：秒）
 TimeMessageFinish =2;
@@ -92,6 +92,8 @@ ColorFont = white;
 %提示信息
 MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
 
+MessageCountdown = double('即将开始...');
+
 MessageFinish = double('实验结束：)');
 %%
 %音频参数设定
@@ -105,11 +107,17 @@ VolumeHint = 0.8;
 %加载提示音数据
 load DataHintAudio.mat;
 
-AudioDataHit = audioread('Hit.wav')';
-AudioDataOut = audioread('Out.wav')';
-AudioDataRoll = audioread('Roll.wav')';
-AudioDataRoll = AudioDataRoll(1:24000);
-AudioDataFinish = audioread('Finish.wav')';
+% AudioDataHit = audioread('Hit.wav')';
+% AudioDataHit = AudioDataHit/max(AudioDataHit);
+% AudioDataOut = audioread('Out.wav')';
+% AudioDataOut = AudioDataOut/max(AudioDataOut);
+% AudioDataRoll = audioread('Roll.wav')';
+% AudioDataRoll = AudioDataRoll/max(AudioDataRoll);
+% AudioDataRoll = AudioDataRoll(1:18000);
+% AudioDataFinish = audioread('Finish.wav')';
+% AudioDataFinish = AudioDataFinish/max(AudioDataFinish);
+% 
+% save DataHintAudio.mat AudioDataHit AudioDataOut AudioDataRoll AudioDataFinish SampleRateAudio;
 
 
 %编码声音频率
