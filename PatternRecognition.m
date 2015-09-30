@@ -254,10 +254,11 @@ try
         TimeStart = GetSecs;
         
         while GetSecs <= TimeStart + TimeMaxPerPattern
+ 
+            XYCursor(1) =  mod((PosCursor(NumStep)-1),NumSquarePerRow)+1;
+            XYCursor(2) =  fix((PosCursor(NumStep)-1)/NumSquarePerRow)+1;
             
-            SequenceFrameDot = [PosCursor(NumStep)-NumSquarePerRow-1:PosCursor(NumStep)-NumSquarePerRow+1,...
-                PosCursor(NumStep)-1:PosCursor(NumStep)+1,...
-                PosCursor(NumStep)+NumSquarePerRow-1:PosCursor(NumStep)+NumSquarePerRow+1];
+            SequenceFrameDot =  ;
             
             InterSectionDot = intersect(SequencePatternDot{pattern},SequenceFrameDot);
             
@@ -276,14 +277,11 @@ try
             AudioDataRight = reshape(DataPureTone(2,IndexInterSectionDot,1:round(TimeCodedSound*SampleRateAudio)),numel(InterSectionDot),[]);
             AudioDataRight = sum(AudioDataRight,1);
             
-              %归一化
+            %归一化
             AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
             AudioDataLeft = AudioData(1,:);
             AudioDataRight = AudioData(2,:);
-            
-            
-            
-          
+
             
             PsychPortAudio('Stop', HandlePortAudio);
             
@@ -310,8 +308,7 @@ try
             
             vbl = Screen('Flip', PointerWindow);
             
-            XYCursor(1) =  mod((PosCursor(NumStep)-1),NumSquarePerRow)+1;
-            XYCursor(2) =  fix((PosCursor(NumStep)-1)/NumSquarePerRow)+1;
+            
             
             
             %等待方向键或者Esc键被按下
@@ -341,8 +338,7 @@ try
                         PsychPortAudio('Stop');
                         PsychPortAudio('Close');
                         
-                        %clear HandlePortAudio ;
-                        
+                        %clear HandlePortAudio ; 
                     end
                     %恢复屏幕显示优先级
                     Priority(0);
@@ -357,14 +353,12 @@ try
                     
                 end
             end
-            
- 
+
             %等待按键松开
             KbWait([],1);
-   
-          
+
             %若光标超出了边界
-            if any(TempXYCursor<=1) || any ( TempXYCursor>=NumSquarePerRow)
+            if any(TempXYCursor<1) || any ( TempXYCursor>NumSquarePerRow)
                 
                 PosCursor(NumStep)=PosCursor(NumStep-1);
                 
@@ -394,8 +388,7 @@ try
                 
             end
         end
-        
-        
+ 
     end
         
         if NumStep> NumMaxStepPerTrial
@@ -420,10 +413,7 @@ try
             return;
             
         end
-        
-        
-    
-    
+
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
         
         DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
@@ -444,9 +434,7 @@ try
             %恢复键盘设定
             ListenChar(0);
             RestrictKeysForKbCheck([]);
-            return;
-            
-            
+            return;   
         end
         
         vbl = Screen('Flip', PointerWindow);
@@ -459,7 +447,7 @@ try
         PsychPortAudio('Stop', HandlePortAudio);
         PsychPortAudio('Close', HandlePortAudio);
         
-        %         clear HandlePortAudio ;
+        %clear HandlePortAudio ;
         
     end
     
@@ -471,12 +459,7 @@ try
     %恢复键盘设定
     ListenChar(0);
     RestrictKeysForKbCheck([]);
-    
-    
-    
-    
-    
-    
+
     %如果程序执行出错则执行下面程序
 catch Error
     
@@ -486,7 +469,7 @@ catch Error
         PsychPortAudio('Stop', HandlePortAudio);
         PsychPortAudio('Close', HandlePortAudio);
         
-        %         clear HandlePortAudio ;
+        %clear HandlePortAudio ;
         
     end
     %恢复屏幕显示优先级
