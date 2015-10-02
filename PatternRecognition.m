@@ -1,5 +1,5 @@
 %编码方式B图案感知程序
-%环境
+%软件环境
 %Psychtoolbox:3.0.12
 %Matlab:R2015a x64
 %OS:Windows 8.1 x64
@@ -24,7 +24,7 @@ rng('shuffle');%Matlab R2012之后版本
 %执行默认设置2
 %相当于执行了以下三条语句：
 %“AssertOpenGL;”%确保Screen函数被正确安装
-%“KbName('UnifyKeyNames');”%根据当前操作系统给出KeyCode（按键码）和KeyName（按键名）的对应
+%“KbName('UnifyKeyNames');”%设置一套适用于所有操作系统的KeyCode（按键码）和KeyName（按键名）对
 %在创建窗口后立刻执行“Screen('ColorRange', PointerWindow, 1, [],1);”将颜色的设定方式由3个
 %8位无符号组成的三维向量改成3个0到1的浮点数三维向量，目的是为了同时兼容不同颜色位数的显示器（比如16位显示器）
 PsychDefaultSetup(2);
@@ -72,6 +72,7 @@ try
     %字体和大小设定
     Screen('TextFont',PointerWindow, NameFont);
     Screen('TextSize',PointerWindow, SizeFont);
+    
     %设置Alpha-Blending相应参数
     Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
@@ -96,7 +97,7 @@ try
     
     
     %基准方块
-    RectBaseSquareFrame = [0,0,round(3*SizeSquare+4*GapWidth),round(3*SizeSquare+4*GapWidth)];
+    RectBaseSquareFrame = [0,0,round(3*SizeSquare+(3+1)*GapWidth),round(3*SizeSquare+(3+1)*GapWidth)];
     
     RectBaseSquare = [0,0,round(SizeSquare),round(SizeSquare)];
     %根据基准方块和方块中心点坐标计算出所有方块的范围（四维向量，格式：[左上角X坐标,左上角X坐标,右下角X坐标，右下角Y坐标]）
@@ -204,10 +205,11 @@ try
 
     PsychPortAudio('Stop', HandlePortAudio);
     
-    PsychPortAudio('FillBuffer', HandlePortAudio,repmat([zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight],1,3));
+    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight]);
+                                                 
     
     %播放声音
-    PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+    PsychPortAudio('Start', HandlePortAudio, 3, AudioStartTime, WaitUntilDeviceStart);
     
 
     for frame =1:round(TimeCountdown*FramePerSecond)
@@ -241,6 +243,12 @@ try
     
 
     PsychPortAudio('Stop', HandlePortAudio);
+    
+    %并口标记1表示实验开始
+    lptwrite(LPTWrite,1);
+    WaitSecs(0.01);
+    lptwrite(LPTWrite,0);
+    WaitSecs(0.01);
 
     
     for trial = 1:NumTrial
@@ -248,7 +256,7 @@ try
         pattern = randi([1,NumPattern]);
         
         PosCursor = zeros (1,MaxNumStep);
-        PosCursor(1) = NumSquarePerRow + 2;
+        PosCursor(1) = 1;
         NumStep =1 ;
         
         TimeStart = GetSecs;
@@ -258,7 +266,12 @@ try
             XYCursor(1) =  mod((PosCursor(NumStep)-1),NumSquarePerRow)+1;
             XYCursor(2) =  fix((PosCursor(NumStep)-1)/NumSquarePerRow)+1;
             
-            SequenceFrameDot =  ;
+            horizon = repmat(XYCursor(1)-1:XYCursor(1)+1,1,3);
+            vertical = reshape(repmat((XYCursor(2)-2:XYCursor(2))*NumSquarePerRow,3,1),1,[]);
+
+            SequenceFrameDot =   horizon + vertical;
+            
+            SequenceFrameDot(SequenceFrameDot<0)=[];
             
             InterSectionDot = intersect(SequencePatternDot{pattern},SequenceFrameDot);
             
@@ -314,6 +327,11 @@ try
             %等待方向键或者Esc键被按下
             [~,KeyCode,~] = KbWait([],0,GetSecs+TimeWaitPerMove);
             
+            lptWrite(LPTAddress,mod(NumStep-1,254)+2);
+            
+            %等待按键松开
+            KbWait([],1);
+            
             
             if any(KeyCode) && ~KeyCode(KbName('ESCAPE')) &&  ~KeyCode(KbName('space'))
                 NumStep = NumStep +1;
@@ -332,14 +350,9 @@ try
                 if KeyCode(KbName('space'))
                     break;
                 else
-                    if exist('HandlePortAudio','var')
-                        
-                        %关闭PortAudio对象
-                        PsychPortAudio('Stop');
-                        PsychPortAudio('Close');
-                        
-                        %clear HandlePortAudio ; 
-                    end
+
+                    PsychPortAudio('Close');
+
                     %恢复屏幕显示优先级
                     Priority(0);
                     %关闭所有窗口对象
@@ -354,8 +367,7 @@ try
                 end
             end
 
-            %等待按键松开
-            KbWait([],1);
+            
 
             %若光标超出了边界
             if any(TempXYCursor<1) || any ( TempXYCursor>NumSquarePerRow)
@@ -445,7 +457,7 @@ try
         
         %关闭PortAudio对象
         PsychPortAudio('Stop', HandlePortAudio);
-        PsychPortAudio('Close', HandlePortAudio);
+        PsychPortAudio('Close');
         
         %clear HandlePortAudio ;
         
