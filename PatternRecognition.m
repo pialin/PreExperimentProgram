@@ -1,5 +1,5 @@
 %编码方式B图案探索程序
-%软件环境
+%软件环境：
 %Psychtoolbox:3.0.12
 %Matlab:R2015a x64
 %OS:Windows 8.1 x64
@@ -31,8 +31,8 @@ PsychDefaultSetup(2);
 
 %键盘响应设置
 %Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
-% ListenChar(2);
-%限制KbCheck响应的按键范围（只有Esc键及上下左右方向键可以触发KbCheck）
+ListenChar(2);
+%限制KbCheck响应的按键范围（只有Esc键及上下左右方向键和空格键可以触发KbCheck）
 RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('LeftArrow'):KbName('DownArrow'),KbName('space')]);
 
 %获取所有显示器的序号
@@ -105,6 +105,7 @@ try
     RectBaseSquare = [0,0,round(SizeSquare),round(SizeSquare)];
     %根据基准方块和方块中心点坐标计算出所有方块的范围（四维向量，格式：[左上角X坐标,左上角X坐标,右下角X坐标，右下角Y坐标]）
     RectSquare = CenterRectOnPointd(RectBaseSquare,SequenceXSquareCenter',SequenceYSquareCenter')';
+    
     %基准圆点
     RectBaseDot = [0,0,round(SizeDot),round(SizeDot)];
     %根据基准圆点和方块中心点坐标计算出所有圆点的范围，格式同上
@@ -123,14 +124,16 @@ try
     
     %PsyPortAudio('Start',...)语句执行后立刻开始播放声音
     AudioStartTime = 0;
-    %等待声音真正播放后退出语句执行下面语句
+    
+    %等待声音真正播放再继续执行后面的语句
     WaitUntilDeviceStart = 1;
+    
     %音频重放次数，无限重放直到执行 PsychPortAudio('Stop',...)
     AudioRepetition = 0;
     
     
     % 创建PortAudio对象，对应的参数如下
-    % (1) [] ,调用默认的
+    % (1) [] ,调用默认的声卡
     % (2) 1 ,仅进行声音播放（不进行声音录制）
     % (3) 1 , 默认延迟模式
     % (4) SampleRateAudio,音频采样率
@@ -214,8 +217,7 @@ try
     
     
     for frame =1:round(TimeCountdown*FramePerSecond)
-        
-        
+
         DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
         
@@ -250,13 +252,13 @@ try
  %%
  %图案探索开始
  
-    %并口标记200表示实验开始
-    lptwrite(LPTAddress,200);
-    %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-    WaitSecs(0.01);
-    %每次打完标记后需要重新将并口置零
-    lptwrite(LPTAddress,0);
-    WaitSecs(0.01);
+%     %并口标记251表示实验开始
+%     lptwrite(LPTAddress,251);
+%     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+%     WaitSecs(0.01);
+%     %每次打完标记后需要重新将并口置零
+%     lptwrite(LPTAddress,0);
+%     WaitSecs(0.01);
     
      %随机选取NumTrial个图案（可能会出现重复）
      IndexPattern = randi([1,NumPattern],1,NumTrial);
@@ -264,11 +266,11 @@ try
     %循环NumTrial次，即进行NumTrial个图案的探索
     for trial = 1:NumTrial
         
-        %输出并口标记当前图案：实际数字为图案序号+200
-        lptwrite(LPTAddress,200+mod(trial,49)+1);
-        WaitSecs(0.01);
-        lptwrite(LPTAddress,0);
-        WaitSecs(0.01);
+%         %输出并口标记当前图案：实际数字为图案序号+200
+%         lptwrite(LPTAddress,200+mod(Pattern(trial),40)+1);
+%         WaitSecs(0.01);
+%         lptwrite(LPTAddress,0);
+%         WaitSecs(0.01);
       
         %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
         PosCursor = zeros (1,MaxNumStep);
@@ -302,7 +304,7 @@ try
             InterSectionDot = intersect(SequencePatternDot{IndexPattern(trial)},SequenceFrameDot);
             
             %计算除去重合点外图案的剩余点
-            DiffSectionDot = setdiff(SequencePatternDot{pattern},SequenceFrameDot);
+            DiffSectionDot = setdiff(SequencePatternDot{IndexPattern(trial)},SequenceFrameDot);
             
             %如果九宫格和图案存在重合点
             if  any(InterSectionDot)
@@ -318,7 +320,7 @@ try
                 AudioDataRight = sum(AudioDataRight,1);
                 
                 %归一化
-                AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
+                AudioData = reshape(mapminmax([AudioDataLeft(:),AudioDataRight(:)]),2,[]);
 
                 PsychPortAudio('Stop', HandlePortAudio);
                 
@@ -357,24 +359,24 @@ try
             
             if any(KeyCode(KbName('LeftArrow'):KbName('DownArrow')))
                 %如果按下方向键，则并口输出标记记录按下按键的次数
-                lptwrite(LPTAddress,mod(NumStep-1,199)+1);
-                WaitSecs(0.01);
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
+%                 lptwrite(LPTAddress,mod(NumStep-1,200)+1);
+%                 WaitSecs(0.01);
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
           
             elseif KeyCode(KbName('ESCAPE'))
-                %输出并口标记251表示实验被人为按下Esc键所中止
-                lptwrite(LPTAddress,251);
-                WaitSecs(0.01);
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
+                %输出并口标记252表示实验被人为按下Esc键所中止
+%                 lptwrite(LPTAddress,252);
+%                 WaitSecs(0.01);
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
                 
             elseif ~KeyCode(KbName('space'))
-                %输出并口标记252表示实验因长时间没有按键操作而中止
-                lptwrite(LPTAddress,252);
-                WaitSecs(0.01);
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
+                %输出并口标记253表示实验因长时间没有按键操作而中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
                 
                 %播放提示音??
                 
@@ -461,20 +463,20 @@ try
         
         if GetSecs>  TimeStart + TimeMaxPerPattern
             %并口输出标记250表示因探索时间过长自动跳至下一图案
-            lptwrite(LPTAddress,250);
-            WaitSecs(0.01);
-            lptwrite(LPTAddress,0);
-            WaitSecs(0.01);   
+%             lptwrite(LPTAddress,250);
+%             WaitSecs(0.01);
+%             lptwrite(LPTAddress,0);
+%             WaitSecs(0.01);   
         end
         
     end
     
  %%   
     %并口标记254表示实验正常结束
-    lptwrite(LPTAddress,254);
-    WaitSecs(0.01);
-    lptwrite(LPTAddress,0);
-    WaitSecs(0.01);
+%     lptwrite(LPTAddress,254);
+%     WaitSecs(0.01);
+%     lptwrite(LPTAddress,0);
+%     WaitSecs(0.01);
     
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
         

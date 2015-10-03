@@ -1,5 +1,5 @@
 %编码方式B实验程序
-%Psychtoolbox:3.0.12 
+%Psychtoolbox:3.0.12
 %Matlab:R2015a x64
 %OS:Windows 8.1 x64
 
@@ -9,7 +9,9 @@ clear;
 sca;
 
 %修改工作路径至当前M文件所在目录
-cd mfilename('fullpath');
+Path=mfilename('fullpath');
+FileSepIndex = strfind(Path,filesep);
+cd(Path(1:FileSepIndex(end)));
 
 %%
 %随机数生成器状态设置
@@ -23,10 +25,16 @@ rng('shuffle');%Matlab R2012之后版本
 %执行默认设置2
 %相当于执行了以下三条语句：
 %“AssertOpenGL;”%确保Screen函数被正确安装
-%“KbName('UnifyKeyNames');”%根据当前操作系统给出KeyCode（按键码）和KeyName（按键名）的对应
+%“KbName('UnifyKeyNames');”%设置一套适用于所有操作系统的统一的KeyCode（按键码）和KeyName（按键名）对
 %在创建窗口后立刻执行“Screen('ColorRange', PointerWindow, 1, [],1);”将颜色的设定方式由3个
 %8位无符号组成的三维向量改成3个0到1的浮点数三维向量，目的是为了同时兼容不同颜色位数的显示器（比如16位显示器）
 PsychDefaultSetup(2);
+
+%键盘响应设置
+%Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
+ListenChar(2);
+%限制KbCheck响应的按键范围（只有Esc键可以触发KbCheck）
+RestrictKeysForKbCheck(KbName('ESCAPE'));
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
@@ -41,344 +49,463 @@ red = [white,black,black];
 green = [black,white,black];
 blue = [black,black,white];
 
-
+%%
 %try catch语句保证在程序执行过程中出错可以及时关闭创建的window和PortAudio对象，正确退出程序
 try
-
-%创建一个窗口对象，返回对象指针PointerWindow
-[PointerWindow,~] = PsychImaging('OpenWindow', ScreenNumber, black);
-
-%获取每次帧刷新之间的时间间隔
-TimePerFlip = Screen('GetFlipInterval', PointerWindow);
-%计算每秒刷新的帧数
-FramePerSecond = 1/TimePerFlip;
-
-%获取可用的优先级？？
-LevelTopPriority = MaxPriority(PointerWindow);
-
-%获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
-[SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
-
-%调用ParameterSetting.m设置相应参数
-ParameterSetting;
-
-%字体和大小设定
-Screen('TextFont',PointerWindow, NameFont);
-Screen('TextSize',PointerWindow, SizeFont);
-%设置Alpha-Blending相应参数
-Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-%等待帧数设定，后面用于保证准确的帧刷新时序
-FrameWait = 1;
-
-
-
-
-%方块坐标计算：XSquareCenter, YSquareCenter分别保存方块中心点的X坐标和Y坐标
-if NumSquare == 1
-    XSquareCenter = 0;
-    YSquareCenter = 0;
-else
-    [XSquareCenter,YSquareCenter]= meshgrid(linspace(-1*(NumSquarePerRow-1)/2,(NumSquarePerRow-1)/2,NumSquarePerRow));
-end
-
-
-%将方块中心点的X坐标和Y坐标转成一个一维向量并加上偏置使坐标移至屏幕中心
-XSquareCenter = reshape(XSquareCenter',1,NumSquare);
-XSquareCenter = round(XSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenX/2);
-
-YSquareCenter = reshape(YSquareCenter',1,NumSquare);
-YSquareCenter = round(YSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenY/2);
-
-%基准方块
-RectBaseSquare = [0,0,round(SizeSquare),round(SizeSquare)];
-%根据基准方块和方块中心点坐标计算出所有方块的范围（四维向量，格式：[左上角X坐标,左上角X坐标,右下角X坐标，右下角Y坐标]）
-RectSquare = CenterRectOnPointd(RectBaseSquare,XSquareCenter',YSquareCenter')';
-%基准圆点
-RectBaseDot = [0,0,round(SizeDot),round(SizeDot)];
-%根据基准圆点和方块中心点坐标计算出所有圆点的范围，格式同上
-RectDot = CenterRectOnPointd(RectBaseDot,XSquareCenter',YSquareCenter')';
-
     
-
-%%
-%音频设置
-
-%开启低延迟模式
-EnableAudioLowLatencyMode = 1; 
-InitializePsychSound(EnableAudioLowLatencyMode);
-
-%设置音频声道数为2，即左右双声道立体声
-NumAudioChannel = 2;
-
-%PsyPortAudio('Start',...)语句执行后立刻开始播放声音
-AudioStartTime = 0;
-%等待声音真正播放后退出语句执行下面语句
-WaitUntilDeviceStart = 1;
-%音频重放次数，仅需播放一次
-AudioRepetition = 1;
-
-
-% 创建PortAudio对象，对应的参数如下
-% (1) [] ,调用默认的
-% (2) 1 ,仅进行声音播放（不进行声音录制）
-% (3) 1 , 默认延迟模式
-% (4) SampleRateAudio,音频采样率
-% (5) 2 ,输出声道数为2
-HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChannel);
-
-%播放音量设置
-PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
-
-%新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
-HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
-
-%优先级设置
-Priority(LevelTopPriority);
-%进行第一次帧刷新获取基准时间
-vbl = Screen('Flip', PointerWindow);
-
-%%
-%等待阶段
-%时长为准备时长减去倒计时时长
-for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
-    %绘制提示语
-    DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
-    %提示程序所有内容已绘制完成
-    Screen('DrawingFinished', PointerWindow);
+    %创建一个窗口对象，返回对象指针PointerWindow
+    PointerWindow = PsychImaging('OpenWindow', ScreenNumber, black);
     
-    %读取键盘输入，若Esc键被按下则立刻退出程序
-    [IsKeyDown,~,KeyCode] = KbCheck;
-    if IsKeyDown && KeyCode(KbName('ESCAPE'))
-        if exist('HandlePortAudio','var')
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-%             clear HandlePortAudio ;
-        end
-        Priority(0);
-        sca;
-        return;
+    %获取每次帧刷新之间的时间间隔
+    TimePerFlip = Screen('GetFlipInterval', PointerWindow);
+    %计算每秒刷新的帧数
+    FramePerSecond = 1/TimePerFlip;
+    
+    %获取可用的屏幕显示优先级？？
+    LevelTopPriority = MaxPriority(PointerWindow);
+    
+    %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
+    [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
+    
+    %调用ParameterSetting.m设置相应参数
+    B_ParameterSetting;
+    
+    %字体和大小设定
+    Screen('TextFont',PointerWindow, NameFont);
+    Screen('TextSize',PointerWindow, SizeFont);
+    %设置Alpha-Blending相应参数
+    Screen('BlendFunction', PointerWindow, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    
+    %等待帧数设定，后面用于保证准确的帧刷新时序
+    FrameWait = 1;
+ 
+    
+    %方块坐标计算：XSquareCenter, YSquareCenter分别保存方块中心点的X坐标和Y坐标
+    if NumSquare == 1
+        XSquareCenter = 0;
+        YSquareCenter = 0;
+    else
+        [XSquareCenter,YSquareCenter]= meshgrid(linspace(-1*(NumSquarePerRow-1)/2,(NumSquarePerRow-1)/2,NumSquarePerRow));
     end
     
-    %帧刷新
-    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
     
-end
-
-%%
-%倒计时阶段
-
-for frame =1:round(TimeCountdown*FramePerSecond)
-    %计算倒计时剩余时间
-    TimeLeft = (TimeCountdown*FramePerSecond-frame)/FramePerSecond;
-    %绘制倒计时数字
-    DrawFormattedText(PointerWindow,num2str(ceil(TimeLeft)),'center', 'center', ColorFont);
-    Screen('DrawingFinished', PointerWindow);
+    %将方块中心点的X坐标和Y坐标转成一个一维向量并加上偏置使坐标移至屏幕中心
+    XSquareCenter = reshape(XSquareCenter',1,NumSquare);
+    XSquareCenter = round(XSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenX/2);
     
-    %扫描键盘，如果Esc键被按下则退出程序
-    [IsKeyDown,~,KeyCode] = KbCheck;
-    if IsKeyDown && KeyCode(KbName('ESCAPE'))
-        if exist('HandlePortAudio','var')
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-%             clear HandlePortAudio ;
+    YSquareCenter = reshape(YSquareCenter',1,NumSquare);
+    YSquareCenter = round(YSquareCenter.*(SizeSquare+GapWidth)+ SizeScreenY/2);
+    
+    %基准方块
+    RectBaseSquare = [0,0,round(SizeSquare),round(SizeSquare)];
+    %根据基准方块和方块中心点坐标计算出所有方块的范围（四维向量，格式：[左上角X坐标,左上角X坐标,右下角X坐标，右下角Y坐标]）
+    RectSquare = CenterRectOnPointd(RectBaseSquare,XSquareCenter',YSquareCenter')';
+    %基准圆点
+    RectBaseDot = [0,0,round(SizeDot),round(SizeDot)];
+    %根据基准圆点和方块中心点坐标计算出所有圆点的范围，格式同上
+    RectDot = CenterRectOnPointd(RectBaseDot,XSquareCenter',YSquareCenter')';
+    
+    
+    
+    %%
+    %音频设置
+    
+    %开启低延迟模式
+    EnableAudioLowLatencyMode = 1;
+    InitializePsychSound(EnableAudioLowLatencyMode);
+    
+    %设置音频声道数为2，即左右双声道立体声
+    NumAudioChannel = 2;
+    
+    %PsyPortAudio('Start',...)语句执行后立刻开始播放声音
+    AudioStartTime = 0;
+    %等待声音真正播放后退出语句执行下面语句
+    WaitUntilDeviceStart = 1;
+
+    
+    
+    % 创建PortAudio对象，对应的参数如下
+    % (1) [] ,调用默认的
+    % (2) 1 ,仅进行声音播放（不进行声音录制）
+    % (3) 1 , 默认延迟模式
+    % (4) SampleRateAudio,音频采样率
+    % (5) 2 ,输出声道数为2
+    HandlePortAudio = PsychPortAudio('Open', [], 1, 1,SampleRateAudio, NumAudioChannel);
+    
+    %播放音量设置
+    PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
+    
+    %新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
+    HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
+    
+    %优先级设置
+    Priority(LevelTopPriority);
+    %进行第一次帧刷新获取基准时间
+    vbl = Screen('Flip', PointerWindow);
+    
+    %%
+    %等待阶段
+    %时长为准备时长减去倒计时时长
+    for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+        %绘制提示语
+        DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+        %提示程序所有内容已绘制完成
+        Screen('DrawingFinished', PointerWindow);
+        
+        %读取键盘输入，若Esc键被按下则立刻退出程序
+        [IsKeyDown,~,KeyCode] = KbCheck;
+        if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            %关闭PortAudio对象
+            PsychPortAudio('Close');
+            %恢复显示优先级
+            Priority(0);
+            %关闭所有窗口对象
+            sca;  
+            %恢复键盘设定
+            %恢复Matlab命令行窗口对键盘输入的响应
+            ListenChar(0);
+            %恢复KbCheck函数对所有键盘输入的响应
+            RestrictKeysForKbCheck([]);
+            %终止程序
+            return;
         end
-        Priority(0);
-        sca;
-        return;
+        
+        %帧刷新
+        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
     
     
-    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
     
-end
-
-%%
-%编码阶段
-%重复次数由ParameterSetting中的NumTrial决定
-for trial =1:NumTrial
+   %%
+     %倒计时阶段
     
-    %随机获取进行声音编码的点
-    SequenceCodedDot = randperm(NumSquare,NumCodedDot);
-    
-    %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-    AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-    %求和
-    AudioDataLeft = sum(AudioDataLeft,1);
-
-
-    
-    AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-
-    AudioDataRight = sum(AudioDataRight,1);
+    %倒计时提示音
+    AudioDataLeft = reshape(DataPureTone(1,5,1:round(SampleRateAudio)),1,[]);
+    AudioDataRight = reshape(DataPureTone(2,5,1:round(SampleRateAudio)),1,[]);
     
     %归一化
-    AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
-    AudioDataLeft = AudioData(1,:);
-    AudioDataRight = AudioData(2,:);
+    
+    MaxAmp = max([MatrixLeftAmp(5), MatrixRightAmp(5)]);
+    
+    AudioDataLeft =  AudioDataLeft/MaxAmp;
+    AudioDataRight =  AudioDataRight/MaxAmp;
+    
+    PsychPortAudio('Stop', HandlePortAudio);
+    
+    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight]);
     
     
-    %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-    PsychPortAudio('FillBuffer', HandlePortAudio,HandleNoiseBuffer);
-    
-    %播放白噪声
-    PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+    %播放声音
+    PsychPortAudio('Start', HandlePortAudio, 3, AudioStartTime, WaitUntilDeviceStart);
     
     
-%%
-%白噪声呈现阶段
-%时长由ParameterSetting中的TimeWhiteNoise决定
-    for Frame =1:round(TimeWhiteNoise*FramePerSecond)
-         
-        DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
+    for frame =1:round(TimeCountdown*FramePerSecond)
+        
+        
+        DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
         
-           
+        %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
-            if exist('HandlePortAudio','var')
-                PsychPortAudio('Stop', HandlePortAudio);
-                PsychPortAudio('Close', HandlePortAudio);
-%                 clear HandlePortAudio ;
-            end
+            %关闭PortAudio对象
+            PsychPortAudio('Close');
+            %恢复显示优先级
             Priority(0);
+            %关闭所有窗口对象
             sca;
-            return;
             
+            %恢复键盘设定
+            %恢复Matlab命令行窗口对键盘输入的响应
+            ListenChar(0);
+            %恢复KbCheck函数对所有键盘输入的响应
+            RestrictKeysForKbCheck([]);
+            %终止程序
+            return;
         end
         
         
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
-    
-    %停止声音播放
-    PsychPortAudio('Stop', HandlePortAudio);
-    
-    %把编码声音数据填充到PortAudio对象的Buffer中
-    PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
-    %播放编码声音
-    PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
-    
-%%
-%编码声音呈现阶段   
-for frame=1:round(TimeCodedSound*FramePerSecond)
-    
-    %绘制方块和圆点
-    Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-    Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot),SizeDot+1);
-    %如果编码点数大于1，则需绘制相应的连线
-    if NumCodedDot > 1
-        XLine = reshape(repmat(XSquareCenter((SequenceCodedDot)),2,1),1,[]);
-        
-        YLine = reshape(repmat(YSquareCenter((SequenceCodedDot)),2,1),1,[]);
-        
- 
-        Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
 
-        
-    end
-    Screen('DrawingFinished', PointerWindow);
-    
-    
-    [IsKeyDown,~,KeyCode] = KbCheck;
-    if IsKeyDown && KeyCode(KbName('ESCAPE'))
-        if exist('HandlePortAudio','var')
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-            %                     clear HandlePortAudio ;
-        end
-        Priority(0);
-        sca;
-        return;
-        
-    end
-    
-    
-    vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-    
-end
     
     PsychPortAudio('Stop', HandlePortAudio);
-%%
-%静音阶段（Trial之间的休息时间）
-    for frame = 1:round(TimeSilence*FramePerSecond)
+    
+    %     %并口标记251表示实验开始
+    %     lptwrite(LPTAddress,251);
+    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+    %     WaitSecs(0.01);
+    %     %每次打完标记后需要重新将并口置零
+    %     lptwrite(LPTAddress,0);
+    %     WaitSecs(0.01);
+    
+    %%
+    %编码阶段
+    %重复次数由ParameterSetting中的NumTrial决定
+    for trial =1:NumTrial
         
-        if trial ~= NumTrial
-            DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
+        %随机获取进行声音编码的点
+        SequenceCodedDot = randperm(NumSquare,NumCodedDot);
+        
+        %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
+        AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
+        %求和
+        AudioDataLeft = sum(AudioDataLeft,1);
+        
+        
+        
+        AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
+        
+        AudioDataRight = sum(AudioDataRight,1);
+        
+        %归一化
+        AudioData = reshape(mapminmax([AudioDataLeft(:),AudioDataRight(:)]),2,[]);
+
+
+        PsychPortAudio('Stop', HandlePortAudio);
+        
+        %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
+        PsychPortAudio('FillBuffer', HandlePortAudio,HandleNoiseBuffer);
+        
+        %播放白噪声
+        PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+        
+        %     %并口标记201表示开始播放白噪声
+        %     lptwrite(LPTAddress,251);
+        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+        %     WaitSecs(0.01);
+        %     %每次打完标记后需要重新将并口置零
+        %     lptwrite(LPTAddress,0);
+        %     WaitSecs(0.01);
+        
+        
+        
+        %%
+        %白噪声呈现阶段
+        %时长由ParameterSetting中的TimeWhiteNoise决定
+        for Frame =1:round(TimeWhiteNoise*FramePerSecond)
             
-        else
+            DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
+            Screen('DrawingFinished', PointerWindow);
             
-            DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
+            
+            %读取键盘输入，若Esc键被按下则立刻退出程序
+            [IsKeyDown,~,KeyCode] = KbCheck;
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
             
         end
         
+        %停止声音播放
+        PsychPortAudio('Stop', HandlePortAudio);
+        
+        %把编码声音数据填充到PortAudio对象的Buffer中
+        PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(2,round(TimeGapSilence*SampleRateAudio)),AudioData]);
+        %播放编码声音
+        PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
+        
+        %     %并口标记1-200表示开始播放编码声音，数字代表目前的trial数
+        %     lptwrite(LPTAddress,mod(trial-1,200)+1);
+        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+        %     WaitSecs(0.01);
+        %     %每次打完标记后需要重新将并口置零
+        %     lptwrite(LPTAddress,0);
+        %     WaitSecs(0.01);
+        
+        
+        %%
+        %编码声音呈现阶段
+        for frame=1:round((TimeCodedSound+TimeGapSilence)*AudioRepetition*FramePerSecond)
+            
+            %绘制方块和圆点
+            Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
+            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot),SizeDot+1);
+            %如果编码点数大于1，则需绘制相应的连线
+            if NumCodedDot > 1
+                XLine = reshape(repmat(XSquareCenter((SequenceCodedDot)),2,1),1,[]);
+                
+                YLine = reshape(repmat(YSquareCenter((SequenceCodedDot)),2,1),1,[]);
+                
+                
+                Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
+                
+                
+            end
+            Screen('DrawingFinished', PointerWindow);
+            
+            
+            %读取键盘输入，若Esc键被按下则立刻退出程序
+            [IsKeyDown,~,KeyCode] = KbCheck;
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+        
+        PsychPortAudio('Stop', HandlePortAudio);
+        
+        %     %并口标记1-200表示编码声音结束，数字代表目前的trial数
+        %     lptwrite(LPTAddress,mod(trial-1,200)+1);
+        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+        %     WaitSecs(0.01);
+        %     %每次打完标记后需要重新将并口置零
+        %     lptwrite(LPTAddress,0);
+        %     WaitSecs(0.01);
+        
+        %%
+        %静音休息阶段（Trial之间的休息时间）
+        for frame = 1:round(TimeBreak*FramePerSecond)
+            
+            if trial ~= NumTrial
+                DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
+                
+            else
+                
+                DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
+                
+            end
+            
+            Screen('DrawingFinished', PointerWindow);
+            
+            %读取键盘输入，若Esc键被按下则立刻退出程序
+            [IsKeyDown,~,KeyCode] = KbCheck;
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+            
+        end
+        
+    end
+    
+    %%   
+    %并口标记254表示实验正常结束
+    %     lptwrite(LPTAddress,254);
+    %     WaitSecs(0.01);
+    %     lptwrite(LPTAddress,0);
+    %     WaitSecs(0.01);
+    
+    for frame = 1:round(TimeMessageFinish * FramePerSecond)
+        
+        DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
-           
+        
+        %扫描键盘，如果Esc键被按下则退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
-            if exist('HandlePortAudio','var')
-                PsychPortAudio('Stop', HandlePortAudio);
-                PsychPortAudio('Close', HandlePortAudio);
-%                 clear HandlePortAudio ;
-            end
-            Priority(0);
-            sca;
-            return;
             
+            %关闭PortAudio对象
+            PsychPortAudio('Close');
+            %恢复显示优先级
+            Priority(0);
+            %关闭所有窗口对象
+            sca;
+            
+            %恢复键盘设定
+            %恢复Matlab命令行窗口对键盘输入的响应
+            ListenChar(0);
+            %恢复KbCheck函数对所有键盘输入的响应
+            RestrictKeysForKbCheck([]);
+            %终止程序
+            return;
         end
         
-        
-        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-        
+        vbl = Screen('Flip', PointerWindow);
         
     end
     
-end
-
-%恢复显示优先级
-Priority(0);
-%关闭PortAudio对象
-PsychPortAudio('Close', HandlePortAudio);
-% clear HandlePortAudio ;
-
-close all;
-% clear;
-%关闭窗口对象
-sca;
-
-NameRecordFile = [datestr(now,'yyyymmdd_HH-MM-SS'),'.xlsx'];
-DirectoryRecord = '.\RecordFiles\';
-
-A = magic(4);
-WhichSheet = 1;
-BaseCell = 'A1';
-CellRange = [BaseCell,':',BaseCell+3];
-xlswrite([DirectoryRecord,NameRecordFile],A,WhichSheet,CellRange);
-
+    
+    %关闭PortAudio对象
+    PsychPortAudio('Close');
+    %恢复显示优先级
+    Priority(0);
+    %关闭所有窗口对象
+    sca;
+    
+    %恢复键盘设定
+    %恢复Matlab命令行窗口对键盘输入的响应
+    ListenChar(0);
+    %恢复KbCheck函数对所有键盘输入的响应
+    RestrictKeysForKbCheck([]);
+    
+%     NameRecordFile = [datestr(now,'yyyymmdd_HH-MM-SS'),'.xlsx'];
+%     DirectoryRecord = '.\RecordFiles\';
+%     
+%     A = magic(4);
+%     WhichSheet = 1;
+%     BaseCell = 'A1';
+%     CellRange = [BaseCell,':',BaseCell+3];
+%     xlswrite([DirectoryRecord,NameRecordFile],A,WhichSheet,CellRange);
+    
 %如果程序执行出错则执行下面程序
 catch Error
-
-    if exist('HandlePortAudio','var')
-
-        %关闭PortAudio对象
-        PsychPortAudio('Stop', HandlePortAudio);
-        PsychPortAudio('Close', HandlePortAudio);
-        
-%         clear HandlePortAudio ;
-
-    end
-    %恢复屏幕显示优先级
+    
+    %关闭PortAudio对象
+    PsychPortAudio('Close');
+    %恢复显示优先级
     Priority(0);
-    %关闭所有窗口对象  
+    %关闭所有窗口对象
     sca;
+    
+    %恢复键盘设定
+    %恢复Matlab命令行窗口对键盘输入的响应
+    ListenChar(0);
+    %恢复KbCheck函数对所有键盘输入的响应
+    RestrictKeysForKbCheck([]);
+
+
     %在命令行输出前面的错误提示信息
     rethrow(Error);
-
-
-end
-
+end    
+    
 
 
 
