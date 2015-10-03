@@ -1,4 +1,4 @@
-%编码方式B图案感知程序
+%编码方式B图案探索程序
 %软件环境
 %Psychtoolbox:3.0.12
 %Matlab:R2015a x64
@@ -174,8 +174,7 @@ try
             %恢复显示优先级
             Priority(0);
             %关闭所有窗口对象
-            sca;
-            
+            sca;  
             %恢复键盘设定
             %恢复Matlab命令行窗口对键盘输入的响应
             ListenChar(0);
@@ -251,8 +250,8 @@ try
  %%
  %图案探索开始
  
-    %并口标记1表示实验开始
-    lptwrite(LPTAddress,1);
+    %并口标记200表示实验开始
+    lptwrite(LPTAddress,200);
     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
     WaitSecs(0.01);
     %每次打完标记后需要重新将并口置零
@@ -264,66 +263,86 @@ try
     
     %循环NumTrial次，即进行NumTrial个图案的探索
     for trial = 1:NumTrial
-      
         
+        %输出并口标记当前图案：实际数字为图案序号+200
+        lptwrite(LPTAddress,200+mod(trial,49)+1);
+        WaitSecs(0.01);
+        lptwrite(LPTAddress,0);
+        WaitSecs(0.01);
+      
+        %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
         PosCursor = zeros (1,MaxNumStep);
+        %初始位置位于1.即第一行第一列的方块
         PosCursor(1) = 1;
+        %NumStep记录当前步数
         NumStep =1 ;
         
+        %获取当前时间作为开始时间
         TimeStart = GetSecs;
         
+        %当探索时间不超过TimeMaxPerPattern（每个图案允许的探索时长）时继续进行声音的输出和按键的播放
         while GetSecs <= TimeStart + TimeMaxPerPattern
             
+            %将光标位置换算成行数和列数便于后续运算
+            %行数X
             XYCursor(1) =  mod((PosCursor(NumStep)-1),NumSquarePerRow)+1;
+            %列数Y
             XYCursor(2) =  fix((PosCursor(NumStep)-1)/NumSquarePerRow)+1;
             
+            %计算九宫格的九个点的位置
             horizon = repmat(XYCursor(1)-1:XYCursor(1)+1,1,3);
             vertical = reshape(repmat((XYCursor(2)-2:XYCursor(2))*NumSquarePerRow,3,1),1,[]);
             
             SequenceFrameDot =   horizon + vertical;
             
+            %将9*9区域外的点去掉
             SequenceFrameDot(SequenceFrameDot<0)=[];
             
+            %计算九宫格和图案的重合点
             InterSectionDot = intersect(SequencePatternDot{IndexPattern(trial)},SequenceFrameDot);
             
+            %计算除去重合点外图案的剩余点
             DiffSectionDot = setdiff(SequencePatternDot{pattern},SequenceFrameDot);
             
+            %如果九宫格和图案存在重合点
             if  any(InterSectionDot)
-                IndexInterSectionDot = false(1,NumSquare);
-                IndexInterSectionDot(InterSectionDot) = true;
-                IndexInterSectionDot = IndexInterSectionDot(SequenceFrameDot);
+                %获取编码点的索引
+                [~,IndexCodedDot,~] = intersect(SequenceFrameDot,InterSectionDot);
                 
                 %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-                AudioDataLeft = reshape(DataPureTone(1,IndexInterSectionDot,1:round(TimeCodedSound*SampleRateAudio)),numel(InterSectionDot),[]);
+                AudioDataLeft = reshape(DataPureTone(1,IndexCodedDot,1:round(TimeCodedSound*SampleRateAudio)),numel(IndexCodedDot),[]);
+                AudioDataRight = reshape(DataPureTone(2,IndexCodedDot,1:round(TimeCodedSound*SampleRateAudio)),numel(IndexCodedDot),[]);
+                
                 %求和
                 AudioDataLeft = sum(AudioDataLeft,1);
-                
-                AudioDataRight = reshape(DataPureTone(2,IndexInterSectionDot,1:round(TimeCodedSound*SampleRateAudio)),numel(InterSectionDot),[]);
                 AudioDataRight = sum(AudioDataRight,1);
                 
                 %归一化
                 AudioData = reshape(mapminmax(AudioDataLeft(:),AudioDataRight(:)),2,[]);
-                AudioDataLeft = AudioData(1,:);
-                AudioDataRight = AudioData(2,:);
-                
-                
+
                 PsychPortAudio('Stop', HandlePortAudio);
                 
-                %将数据填入音频播放的Buffer里
-                PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,round(TimeGapSilence*SampleRateAudio));AudioDataRight,zeros(1,round(TimeGapSilence*SampleRateAudio))]);
+                %将声音数据填入音频播放的Buffer里
+                PsychPortAudio('FillBuffer', HandlePortAudio,[AudioData,zeros(2,round(TimeGapSilence*SampleRateAudio))]);
                 
-                %播放白噪声
+                %播放声音
                 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
                 
             end
             
+            
+            %计算并绘制以光标为中心的九宫格
             RectSquareFrame = CenterRectOnPointd(RectBaseSquareFrame,SequenceXSquareCenter(PosCursor(NumStep)),SequenceYSquareCenter(PosCursor(NumStep)));
+            
             Screen('FillRect', PointerWindow,ColorSquareFrame,RectSquareFrame);
+            %绘制9*9的方块阵
             Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
             
+            %如果除去重合点外图案还有剩余点，则绘制剩余点
             if any(DiffSectionDot)
                 Screen('FillOval', PointerWindow,ColorDiffDot,RectDot(:,DiffSectionDot),ceil(SizeDot));
             end
+            %如果九宫格和图案有重合点则绘制重合点
             if any(InterSectionDot)
                 Screen('FillOval', PointerWindow,ColorInterDot,RectDot(:,InterSectionDot),ceil(SizeDot));
             end
@@ -332,23 +351,44 @@ try
             
             vbl = Screen('Flip', PointerWindow);
             
-            
-            
-            
-            %等待方向键或者Esc键被按下
+            %等待方向键、Esc键或空格键被按下
+            %每次移动最长等待时间为TimeWaitPerMove
             [~,KeyCode,~] = KbWait([],0,GetSecs+TimeWaitPerMove);
             
-            lptwrite(LPTAddress,mod(NumStep-1,254)+2);
-            WaitSecs(0.01);
-            lptwrite(LPTAddress,0);
-            WaitSecs(0.01);
-            
+            if any(KeyCode(KbName('LeftArrow'):KbName('DownArrow')))
+                %如果按下方向键，则并口输出标记记录按下按键的次数
+                lptwrite(LPTAddress,mod(NumStep-1,199)+1);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
+          
+            elseif KeyCode(KbName('ESCAPE'))
+                %输出并口标记251表示实验被人为按下Esc键所中止
+                lptwrite(LPTAddress,251);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
+                
+            elseif ~KeyCode(KbName('space'))
+                %输出并口标记252表示实验因长时间没有按键操作而中止
+                lptwrite(LPTAddress,252);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
+                
+                %播放提示音??
+                
+                
+            end
+                
+
             %等待按键松开
             KbWait([],1);
             
-            
             if any(KeyCode) && ~KeyCode(KbName('ESCAPE')) &&  ~KeyCode(KbName('space'))
+                %步数计数值加一
                 NumStep = NumStep +1;
+                %根据按下的方向键计算新的光标位置，暂时存入TempXYCursor中
                 if KeyCode(KbName('LeftArrow'))
                     TempXYCursor = XYCursor+[-1,0];
                 elseif KeyCode(KbName('RightArrow'))
@@ -364,81 +404,72 @@ try
                 if KeyCode(KbName('space'))
                     break;
                 else
-                    
+                    %关闭PortAudio对象
                     PsychPortAudio('Close');
-                    
-                    %恢复屏幕显示优先级
+                    %恢复显示优先级
                     Priority(0);
                     %关闭所有窗口对象
                     sca;
                     
                     %恢复键盘设定
+                    %恢复Matlab命令行窗口对键盘输入的响应
                     ListenChar(0);
+                    %恢复KbCheck函数对所有键盘输入的响应
                     RestrictKeysForKbCheck([]);
-                    
+                    %终止程序
                     return;
                     
                 end
             end
             
-            
-            
+
             %若光标超出了边界
             if any(TempXYCursor<1) || any ( TempXYCursor>NumSquarePerRow)
                 
+                %记录的光标位置不作改变
                 PosCursor(NumStep)=PosCursor(NumStep-1);
                 
-                %将之前保存在HandleOutBuffer里面的数据填入音频播放的Buffer里
-                PsychPortAudio('Stop', HandlePortAudio);
                 
+                PsychPortAudio('Stop', HandlePortAudio);
+                %将之前保存在HandleOutBuffer里面的数据填入音频播放的Buffer里
                 PsychPortAudio('FillBuffer', HandlePortAudio,HandleOutBuffer);
                 
-                %播放声音
+                %播放出界提示音
                 PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
                 
-                
+                %等待提示音播放完毕
                 WaitSecs(numel(AudioDataOut)/SampleRateAudio);
                 
             else
                 
+                %记录移动后光标的位置
                 PosCursor(NumStep)=TempXYCursor(1)+NumSquarePerRow*(TempXYCursor(2)-1);
                 
                 %播放移动声音
                 PsychPortAudio('Stop', HandlePortAudio);
+                
                 %将之前保存在HandleRollBuffer里面的声音数据填入音频播放的Buffer里
                 PsychPortAudio('FillBuffer', HandlePortAudio,HandleRollBuffer);
                 
                 %播放声音
                 PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+                %等待声音播放完毕
                 WaitSecs(numel(AudioDataRoll)/SampleRateAudio);
                 
             end
         end
         
+        if GetSecs>  TimeStart + TimeMaxPerPattern
+            %并口输出标记250表示因探索时间过长自动跳至下一图案
+            lptwrite(LPTAddress,250);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);   
+        end
+        
     end
     
-    if NumStep> NumMaxStepPerTrial
-        if exist('HandlePortAudio','var')
-            
-            %关闭PortAudio对象
-            PsychPortAudio('Stop', HandlePortAudio);
-            PsychPortAudio('Close', HandlePortAudio);
-            
-            %clear HandlePortAudio ;
-            
-        end
-        %恢复屏幕显示优先级
-        Priority(0);
-        %关闭所有窗口对象
-        sca;
-        
-        %恢复键盘设定
-        ListenChar(0);
-        RestrictKeysForKbCheck([]);
-        
-        return;
-        
-    end
+ %%   
     %并口标记254表示实验正常结束
     lptwrite(LPTAddress,254);
     WaitSecs(0.01);
@@ -453,18 +484,20 @@ try
         %扫描键盘，如果Esc键被按下则退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
-            if exist('HandlePortAudio','var')
-                PsychPortAudio('Stop', HandlePortAudio);
-                PsychPortAudio('Close', HandlePortAudio);
-                %             clear HandlePortAudio ;
-            end
             
+            %关闭PortAudio对象
+            PsychPortAudio('Close');
+            %恢复显示优先级
             Priority(0);
+            %关闭所有窗口对象
             sca;
             
             %恢复键盘设定
+            %恢复Matlab命令行窗口对键盘输入的响应
             ListenChar(0);
+            %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+            %终止程序
             return;
         end
         
@@ -472,46 +505,36 @@ try
         
     end
     
-    if exist('HandlePortAudio','var')
-        
-        %关闭PortAudio对象
-        PsychPortAudio('Stop', HandlePortAudio);
-        PsychPortAudio('Close');
-        
-        %clear HandlePortAudio ;
-        
-    end
-    
-    %恢复屏幕显示优先级
+    %关闭PortAudio对象
+    PsychPortAudio('Close');
+    %恢复显示优先级
     Priority(0);
     %关闭所有窗口对象
     sca;
     
     %恢复键盘设定
+    %恢复Matlab命令行窗口对键盘输入的响应
     ListenChar(0);
+    %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
-    
-    %如果程序执行出错则执行下面程序
+    %终止程序
+    return;
+%%
+%如果try 和catch之间的语句执行出错则执行下列语句    
 catch Error
     
-    if exist('HandlePortAudio','var')
-        
-        %关闭PortAudio对象
-        PsychPortAudio('Stop', HandlePortAudio);
-        PsychPortAudio('Close', HandlePortAudio);
-        
-        %clear HandlePortAudio ;
-        
-    end
-    %恢复屏幕显示优先级
+    %关闭PortAudio对象
+    PsychPortAudio('Close');
+    %恢复显示优先级
     Priority(0);
     %关闭所有窗口对象
     sca;
     
     %恢复键盘设定
+    %恢复Matlab命令行窗口对键盘输入的响应
     ListenChar(0);
+    %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
-    
     
     %在命令行输出前面的错误提示信息
     rethrow(Error);
