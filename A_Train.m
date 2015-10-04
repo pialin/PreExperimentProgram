@@ -58,7 +58,7 @@ try
     FramePerSecond =1/TimePerFlip;
     
     %获取可用的屏幕显示优先级？？
-    LevelTopPriority = MaxPriority(PointerWindow);
+    LevelTopPriority = MaxPriority(PointerWindow,'KbCheck','KbWait');
     %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
     [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
     
@@ -138,7 +138,7 @@ try
     
     
     % 创建PortAudio对象，对应的参数如下
-    % (1) [] ,调用默认的
+    % (1) [] ,调用默认的声卡
     % (2) 1 ,仅进行声音播放（不进行声音录制）
     % (3) 1 , 默认延迟模式
     % (4) SampleRateAudio,音频采样率
@@ -149,7 +149,7 @@ try
     PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
     
     
-    %优先级设置
+    %显示优先级设置
     Priority(LevelTopPriority);
     %进行第一次帧刷新获取基准时间
     vbl = Screen('Flip', PointerWindow);
@@ -157,7 +157,7 @@ try
     
     %进行键盘扫描
     %返回值：
-    %IsIsAnyKeyPressed 标志是否有按键被按下
+    %IsKeyDown 标志是否有按键被按下
     %KeyCode为所有（256个）按键的状态，0代表没有被按下；1代表被按下了
     [ IsKeyDown, ~, KeyCode] = KbCheck;
     
@@ -336,8 +336,8 @@ try
     end
     
     
-    
-    %如果程序执行出错则执行下面程序
+%%    
+%如果程序执行出错则执行下面程序
 catch Error
     
     

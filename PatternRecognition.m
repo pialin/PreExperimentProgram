@@ -13,6 +13,17 @@ Path = mfilename('fullpath');
 PosFileSep = strfind(Path,filesep);
 cd(Path(1:PosFileSep(end)));
 
+
+%从输入对话框获取受试者名字
+InputdlgOptions.Resize = 'on'; 
+InputdlgOptions.WindowStyle = 'normal';
+
+
+SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
+if isempty(SubjectName)
+    return;
+end
+
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -69,8 +80,8 @@ try
     %获取屏幕分辨率 SizeScreenX,SizeScreenY分别指横向和纵向的分辨率
     [SizeScreenX, SizeScreenY] = Screen('WindowSize', PointerWindow);
     
-    %调用PatternRecognitionParameterSetting.m设置相应参数
-    PatternRecognitionParameterSetting;
+    %调用PatternRecognition_ParameterSetting.m设置相应参数
+    PatternRecognition_ParameterSetting;
     
     %字体和大小设定
     Screen('TextFont',PointerWindow, NameFont);
@@ -161,6 +172,14 @@ try
     
     %%
     
+    %     %并口标记251表示实验开始（准备阶段开始）
+    %     lptwrite(LPTAddress,251);
+    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+    %     WaitSecs(0.01);
+    %     %每次打完标记后需要重新将并口置零
+    %     lptwrite(LPTAddress,0);
+    %     WaitSecs(0.01);
+    
     %等待阶段
     %时长为准备时长减去倒计时时长
     for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
@@ -193,7 +212,7 @@ try
     end
     
     %%
-    
+
     %倒计时阶段
     
     %倒计时提示音
@@ -251,31 +270,18 @@ try
     
  %%
  %图案探索开始
- 
-%     %并口标记251表示实验开始
-%     lptwrite(LPTAddress,251);
-%     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-%     WaitSecs(0.01);
-%     %每次打完标记后需要重新将并口置零
-%     lptwrite(LPTAddress,0);
-%     WaitSecs(0.01);
-    
+
      %随机选取NumTrial个图案（可能会出现重复）
      IndexPattern = randi([1,NumPattern],1,NumTrial);
+     
+     %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
+     PosCursor = zeros (1,MaxNumStep,NumTrial);
     
     %循环NumTrial次，即进行NumTrial个图案的探索
     for trial = 1:NumTrial
-        
-%         %输出并口标记当前图案：实际数字为图案序号+200
-%         lptwrite(LPTAddress,200+mod(Pattern(trial),40)+1);
-%         WaitSecs(0.01);
-%         lptwrite(LPTAddress,0);
-%         WaitSecs(0.01);
-      
-        %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
-        PosCursor = zeros (1,MaxNumStep);
+ 
         %初始位置位于1.即第一行第一列的方块
-        PosCursor(1) = 1;
+        PosCursor(1,1,trial) = 1;
         %NumStep记录当前步数
         NumStep =1 ;
         
@@ -287,9 +293,9 @@ try
             
             %将光标位置换算成行数和列数便于后续运算
             %行数X
-            XYCursor(1) =  mod((PosCursor(NumStep)-1),NumSquarePerRow)+1;
+            XYCursor(1) =  mod((PosCursor(1,NumStep,trial)-1),NumSquarePerRow)+1;
             %列数Y
-            XYCursor(2) =  fix((PosCursor(NumStep)-1)/NumSquarePerRow)+1;
+            XYCursor(2) =  fix((PosCursor(1,NumStep,trial)-1)/NumSquarePerRow)+1;
             
             %计算九宫格的九个点的位置
             horizon = repmat(XYCursor(1)-1:XYCursor(1)+1,1,3);
@@ -329,12 +335,17 @@ try
                 
                 %播放声音
                 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
-                
+                 
             end
             
+            %         %输出并口代表声音输出开始，实际数字为当前trial+200
+            %         lptwrite(LPTAddress,200+mod(trial,40)+1);
+            %         WaitSecs(0.01);
+            %         lptwrite(LPTAddress,0);
+            %         WaitSecs(0.01);
             
             %计算并绘制以光标为中心的九宫格
-            RectSquareFrame = CenterRectOnPointd(RectBaseSquareFrame,SequenceXSquareCenter(PosCursor(NumStep)),SequenceYSquareCenter(PosCursor(NumStep)));
+            RectSquareFrame = CenterRectOnPointd(RectBaseSquareFrame,SequenceXSquareCenter(PosCursor(1,NumStep,trial)),SequenceYSquareCenter(PosCursor(1,NumStep,trial)));
             
             Screen('FillRect', PointerWindow,ColorSquareFrame,RectSquareFrame);
             %绘制9*9的方块阵
@@ -377,8 +388,6 @@ try
 %                 WaitSecs(0.01);
 %                 lptwrite(LPTAddress,0);
 %                 WaitSecs(0.01);
-                
-                %播放提示音??
                 
                 
             end
@@ -429,7 +438,7 @@ try
             if any(TempXYCursor<1) || any ( TempXYCursor>NumSquarePerRow)
                 
                 %记录的光标位置不作改变
-                PosCursor(NumStep)=PosCursor(NumStep-1);
+                PosCursor(1,NumStep,trial)=PosCursor(1,NumStep-1,trial);
                 
                 
                 PsychPortAudio('Stop', HandlePortAudio);
@@ -445,7 +454,7 @@ try
             else
                 
                 %记录移动后光标的位置
-                PosCursor(NumStep)=TempXYCursor(1)+NumSquarePerRow*(TempXYCursor(2)-1);
+                PosCursor(1,NumStep,trial)=TempXYCursor(1)+NumSquarePerRow*(TempXYCursor(2)-1);
                 
                 %播放移动声音
                 PsychPortAudio('Stop', HandlePortAudio);
@@ -463,10 +472,12 @@ try
         
         if GetSecs>  TimeStart + TimeMaxPerPattern
             %并口输出标记250表示因探索时间过长自动跳至下一图案
-%             lptwrite(LPTAddress,250);
-%             WaitSecs(0.01);
-%             lptwrite(LPTAddress,0);
-%             WaitSecs(0.01);   
+            %             lptwrite(LPTAddress,250);
+            %             WaitSecs(0.01);
+            %             lptwrite(LPTAddress,0);
+            %             WaitSecs(0.01);
+            
+            %%播放提示音？？
         end
         
     end
@@ -474,11 +485,15 @@ try
  %%   
     %并口标记254表示实验正常结束
 %     lptwrite(LPTAddress,254);
-%     WaitSecs(0.01);
-%     lptwrite(LPTAddress,0);
-%     WaitSecs(0.01);
-    
+
+    %实验结束提示
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
+        
+        if frame == 2
+            
+            %     lptwrite(LPTAddress,0);
+
+        end
         
         DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
@@ -519,8 +534,19 @@ try
     ListenChar(0);
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
-    %终止程序
-    return;
+
+    %%
+    %存储记录文件
+    %记录文件路径
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'PatternRecognition',num2str(NumCodedDot)];
+    if ~exist(RecordPath,'dir')
+        mkdir(RecordPath);
+    end
+    %记录文件名
+    RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
+    %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
+    save(RecordFile,'NumTrial','IndexPattern','PosCursor','SequencePatternDot');
+    
 %%
 %如果try 和catch之间的语句执行出错则执行下列语句    
 catch Error

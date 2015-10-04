@@ -13,6 +13,18 @@ Path=mfilename('fullpath');
 FileSepIndex = strfind(Path,filesep);
 cd(Path(1:FileSepIndex(end)));
 
+
+%从输入对话框获取受试者名字
+InputdlgOptions.Resize = 'on'; 
+InputdlgOptions.WindowStyle = 'normal';
+
+
+SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
+if isempty(SubjectName)
+    return;
+end
+
+
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -144,6 +156,16 @@ try
     vbl = Screen('Flip', PointerWindow);
     
     %%
+    %     %并口标记251表示实验开始
+    %     lptwrite(LPTAddress,251);
+    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+    %     WaitSecs(0.01);
+    %     %每次打完标记后需要重新将并口置零
+    %     lptwrite(LPTAddress,0);
+    %     WaitSecs(0.01);
+    
+    
+    
     %等待阶段
     %时长为准备时长减去倒计时时长
     for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
@@ -233,30 +255,27 @@ try
     
     PsychPortAudio('Stop', HandlePortAudio);
     
-    %     %并口标记251表示实验开始
-    %     lptwrite(LPTAddress,251);
-    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-    %     WaitSecs(0.01);
-    %     %每次打完标记后需要重新将并口置零
-    %     lptwrite(LPTAddress,0);
-    %     WaitSecs(0.01);
+
     
     %%
+    %初始化SequenceCodedDot用于记录随机选取的编码点，每一列为一个Trial
+    SequenceCodedDot = zeros(NumCodedDot,NumTrial);
+    
     %编码阶段
     %重复次数由ParameterSetting中的NumTrial决定
     for trial =1:NumTrial
         
         %随机获取进行声音编码的点
-        SequenceCodedDot = randperm(NumSquare,NumCodedDot);
+        SequenceCodedDot(:,trial) = randperm(NumSquare,NumCodedDot);
         
         %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-        AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
+        AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
         %求和
         AudioDataLeft = sum(AudioDataLeft,1);
         
         
         
-        AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot,1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
+        AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
         
         AudioDataRight = sum(AudioDataRight,1);
         
@@ -274,11 +293,7 @@ try
         
         %     %并口标记201表示开始播放白噪声
         %     lptwrite(LPTAddress,251);
-        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-        %     WaitSecs(0.01);
-        %     %每次打完标记后需要重新将并口置零
-        %     lptwrite(LPTAddress,0);
-        %     WaitSecs(0.01);
+
         
         
         
@@ -286,6 +301,13 @@ try
         %白噪声呈现阶段
         %时长由ParameterSetting中的TimeWhiteNoise决定
         for Frame =1:round(TimeWhiteNoise*FramePerSecond)
+            
+            if frame == 2
+
+                %     %每次打完标记后需要重新将并口置零
+                %     lptwrite(LPTAddress,0);
+            
+            end
             
             DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
             Screen('DrawingFinished', PointerWindow);
@@ -324,25 +346,28 @@ try
         
         %     %并口标记1-200表示开始播放编码声音，数字代表目前的trial数
         %     lptwrite(LPTAddress,mod(trial-1,200)+1);
-        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-        %     WaitSecs(0.01);
-        %     %每次打完标记后需要重新将并口置零
-        %     lptwrite(LPTAddress,0);
-        %     WaitSecs(0.01);
-        
+
         
         %%
         %编码声音呈现阶段
         for frame=1:round((TimeCodedSound+TimeGapSilence)*AudioRepetition*FramePerSecond)
             
+            if frame ==2
+
+                %     %每次打完标记后需要重新将并口置零
+                %     lptwrite(LPTAddress,0);
+
+
+            end
+            
             %绘制方块和圆点
             Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot),SizeDot+1);
+            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot(:,trial)),SizeDot+1);
             %如果编码点数大于1，则需绘制相应的连线
             if NumCodedDot > 1
-                XLine = reshape(repmat(XSquareCenter((SequenceCodedDot)),2,1),1,[]);
+                XLine = reshape(repmat(XSquareCenter((SequenceCodedDot(:,trial))),2,1),1,[]);
                 
-                YLine = reshape(repmat(YSquareCenter((SequenceCodedDot)),2,1),1,[]);
+                YLine = reshape(repmat(YSquareCenter((SequenceCodedDot(:,trial))),2,1),1,[]);
                 
                 
                 Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
@@ -379,15 +404,18 @@ try
         
         %     %并口标记1-200表示编码声音结束，数字代表目前的trial数
         %     lptwrite(LPTAddress,mod(trial-1,200)+1);
-        %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-        %     WaitSecs(0.01);
-        %     %每次打完标记后需要重新将并口置零
-        %     lptwrite(LPTAddress,0);
-        %     WaitSecs(0.01);
+
         
         %%
         %静音休息阶段（Trial之间的休息时间）
         for frame = 1:round(TimeBreak*FramePerSecond)
+            
+            if frame ==2 
+
+                %     %每次打完标记后需要重新将并口置零
+                %     lptwrite(LPTAddress,0);
+            
+            end
             
             if trial ~= NumTrial
                 DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
@@ -429,11 +457,15 @@ try
     %%   
     %并口标记254表示实验正常结束
     %     lptwrite(LPTAddress,254);
-    %     WaitSecs(0.01);
-    %     lptwrite(LPTAddress,0);
-    %     WaitSecs(0.01);
+
     
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
+        
+        if frame ==2 
+
+            %     lptwrite(LPTAddress,0);
+       
+        end
         
         DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
@@ -476,14 +508,17 @@ try
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
     
-%     NameRecordFile = [datestr(now,'yyyymmdd_HH-MM-SS'),'.xlsx'];
-%     DirectoryRecord = '.\RecordFiles\';
-%     
-%     A = magic(4);
-%     WhichSheet = 1;
-%     BaseCell = 'A1';
-%     CellRange = [BaseCell,':',BaseCell+3];
-%     xlswrite([DirectoryRecord,NameRecordFile],A,WhichSheet,CellRange);
+    %%
+    %存储记录文件
+    %记录文件路径
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'B',num2str(NumCodedDot)];
+    if ~exist(RecordPath,'dir')
+        mkdir(RecordPath);
+    end
+    %记录文件名
+    RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
+    %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
+    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodedDot');
     
 %如果程序执行出错则执行下面程序
 catch Error
