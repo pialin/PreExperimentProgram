@@ -342,7 +342,7 @@ catch Error
     
     
     %关闭PortAudio对象
-    PsychPortAudio('Close');
+%     PsychPortAudio('Close');
     %恢复显示优先级
     Priority(0);
     %关闭所有窗口对象
