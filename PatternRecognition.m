@@ -578,7 +578,7 @@ try
     %%
     %存储记录文件
     %记录文件路径
-    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'PatternRecognition'];
+    RecordPath = ['.',filesep,'RecordFiles',filesep,cell2mat(SubjectName),filesep,'PatternRecognition'];
     if ~exist(RecordPath,'dir')
         mkdir(RecordPath);
     end
