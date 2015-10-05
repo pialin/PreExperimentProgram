@@ -150,7 +150,27 @@ else
 end
 
 %加载提示音数据
-load DataHintAudio.mat;
+if exist('.\HintSound\DataHintAudio.mat','file')
+    load .\HintSound\DataHintAudio.mat;
+else
+    AudioDataHit = audioread('.\HintSound\Hit.wav')';
+    AudioDataHit = AudioDataHit/max(abs(AudioDataHit(:)));
+    
+    AudioDataOut = audioread('.\HintSound\Out.wav')';
+    AudioDataOut = AudioDataOut/max(abs(AudioDataOut(:)));
+    
+    AudioDataRoll = audioread('.\HintSound\Roll.wav')';
+    AudioDataRoll = AudioDataRoll/max(abs(AudioDataRoll(:)));
+    AudioDataRoll = AudioDataRoll(1:12000);
+    
+    AudioDataPass = audioread('.\HintSound\Pass.wav')';
+    AudioDataPass = AudioDataPass/max(abs(AudioDataPass(:)));
+    
+    AudioDataFinish = audioread('.\HintSound\Finish.wav')';
+    AudioDataFinish = AudioDataFinish/max(abs(AudioDataFinish(:)));
+
+    save .\HintSound\DataHintAudio.mat SampleRateAudio AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
+end
 
 
 

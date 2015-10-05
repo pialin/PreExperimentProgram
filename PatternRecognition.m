@@ -15,7 +15,7 @@ cd(Path(1:PosFileSep(end)));
 
 
 %从输入对话框获取受试者名字
-InputdlgOptions.Resize = 'on'; 
+InputdlgOptions.Resize = 'on';
 InputdlgOptions.WindowStyle = 'normal';
 
 
@@ -62,11 +62,11 @@ blue = [black,black,white];
 %%
 %try catch语句保证在程序执行过程中出错可以及时关闭创建的window和PortAudio对象，正确退出程序
 try
-  
+    
     %创建一个窗口对象，返回对象指针PointerWindow
     PointerWindow= PsychImaging('OpenWindow', ScreenNumber, black);
     
-   %%
+    %%
     %窗口对象参数的获取和设置
     
     %获取每次帧刷新之间的时间间隔
@@ -157,6 +157,12 @@ try
     HandleRollBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll;AudioDataRoll]);
     %超出边界提示音
     HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataOut;AudioDataOut]);
+    %跳过图案提示音
+    HandlePassBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataPass;AudioDataPass]);
+    %完成实验提示音
+    HandleFinishBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataFinish;AudioDataFinish]);
+    
+    
     
     %%
     %开始
@@ -196,12 +202,14 @@ try
             %恢复显示优先级
             Priority(0);
             %关闭所有窗口对象
-            sca;  
+            sca;
             %恢复键盘设定
             %恢复Matlab命令行窗口对键盘输入的响应
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -212,7 +220,7 @@ try
     end
     
     %%
-
+    
     %倒计时阶段
     
     %倒计时提示音
@@ -236,7 +244,7 @@ try
     
     
     for frame =1:round(TimeCountdown*FramePerSecond)
-
+        
         DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
         
@@ -255,6 +263,10 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+            
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
+            
             %终止程序
             return;
         end
@@ -266,20 +278,20 @@ try
     
     
     PsychPortAudio('Stop', HandlePortAudio);
- 
     
- %%
- %图案探索开始
-
-     %随机选取NumTrial个图案（可能会出现重复）
-     IndexPattern = randi([1,NumPattern],1,NumTrial);
-     
-     %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
-     PosCursor = zeros (1,MaxNumStep,NumTrial);
+    
+    %%
+    %图案探索开始
+    
+    %随机选取NumTrial个图案（可能会出现重复）
+    IndexPattern = randi([1,NumPattern],1,NumTrial);
+    
+    %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
+    PosCursor = zeros (1,MaxNumStep,NumTrial);
     
     %循环NumTrial次，即进行NumTrial个图案的探索
     for trial = 1:NumTrial
- 
+        
         %初始位置位于1.即第一行第一列的方块
         PosCursor(1,1,trial) = 1;
         %NumStep记录当前步数
@@ -327,7 +339,7 @@ try
                 
                 %归一化
                 AudioData = reshape(mapminmax([AudioDataLeft(:),AudioDataRight(:)]),2,[]);
-
+                
                 PsychPortAudio('Stop', HandlePortAudio);
                 
                 %将声音数据填入音频播放的Buffer里
@@ -335,7 +347,7 @@ try
                 
                 %播放声音
                 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
-                 
+                
             end
             
             %         %输出并口代表声音输出开始，实际数字为当前trial+200
@@ -370,29 +382,29 @@ try
             
             if any(KeyCode(KbName('LeftArrow'):KbName('DownArrow')))
                 %如果按下方向键，则并口输出标记记录按下按键的次数
-%                 lptwrite(LPTAddress,mod(NumStep-1,200)+1);
-%                 WaitSecs(0.01);
-%                 lptwrite(LPTAddress,0);
-%                 WaitSecs(0.01);
-          
+                %                 lptwrite(LPTAddress,mod(NumStep-1,200)+1);
+                %                 WaitSecs(0.01);
+                %                 lptwrite(LPTAddress,0);
+                %                 WaitSecs(0.01);
+                
             elseif KeyCode(KbName('ESCAPE'))
                 %输出并口标记252表示实验被人为按下Esc键所中止
-%                 lptwrite(LPTAddress,252);
-%                 WaitSecs(0.01);
-%                 lptwrite(LPTAddress,0);
-%                 WaitSecs(0.01);
+                %                 lptwrite(LPTAddress,252);
+                %                 WaitSecs(0.01);
+                %                 lptwrite(LPTAddress,0);
+                %                 WaitSecs(0.01);
                 
             elseif ~KeyCode(KbName('space'))
                 %输出并口标记253表示实验因长时间没有按键操作而中止
-%                 lptwrite(LPTAddress,253);
-%                 WaitSecs(0.01);
-%                 lptwrite(LPTAddress,0);
-%                 WaitSecs(0.01);
+                %                 lptwrite(LPTAddress,253);
+                %                 WaitSecs(0.01);
+                %                 lptwrite(LPTAddress,0);
+                %                 WaitSecs(0.01);
                 
                 
             end
-                
-
+            
+            
             %等待按键松开
             KbWait([],1);
             
@@ -427,13 +439,16 @@ try
                     ListenChar(0);
                     %恢复KbCheck函数对所有键盘输入的响应
                     RestrictKeysForKbCheck([]);
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
+                    
                     %终止程序
                     return;
                     
                 end
             end
             
-
+            
             %若光标超出了边界
             if any(TempXYCursor<1) || any ( TempXYCursor>NumSquarePerRow)
                 
@@ -477,22 +492,40 @@ try
             %             lptwrite(LPTAddress,0);
             %             WaitSecs(0.01);
             
-            %%播放提示音？？
+            %播放跳过提示音
+            PsychPortAudio('Stop', HandlePortAudio);
+            
+            %将之前保存在HandleRollBuffer里面的声音数据填入音频播放的Buffer里
+            PsychPortAudio('FillBuffer', HandlePortAudio,HandlePassBuffer);
+            
+            %播放声音
+            PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+            %等待声音播放完毕
+            WaitSecs(numel(AudioDataPass)/SampleRateAudio);
         end
         
     end
     
- %%   
+    %%
     %并口标记254表示实验正常结束
-%     lptwrite(LPTAddress,254);
-
+    %     lptwrite(LPTAddress,254);
+    
+    %播放完成提示音
+    PsychPortAudio('Stop', HandlePortAudio);
+    
+    %将之前保存在HandleRollBuffer里面的声音数据填入音频播放的Buffer里
+    PsychPortAudio('FillBuffer', HandlePortAudio,HandleFinishBuffer);
+    
+    %播放声音
+    PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+    
     %实验结束提示
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
         
         if frame == 2
             
             %     lptwrite(LPTAddress,0);
-
+            
         end
         
         DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
@@ -514,6 +547,10 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+            
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
+            
             %终止程序
             return;
         end
@@ -534,11 +571,14 @@ try
     ListenChar(0);
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
-
+    
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
+    
     %%
     %存储记录文件
     %记录文件路径
-    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'PatternRecognition',num2str(NumCodedDot)];
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'PatternRecognition'];
     if ~exist(RecordPath,'dir')
         mkdir(RecordPath);
     end
@@ -547,8 +587,8 @@ try
     %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
     save(RecordFile,'NumTrial','IndexPattern','PosCursor','SequencePatternDot');
     
-%%
-%如果try 和catch之间的语句执行出错则执行下列语句    
+    %%
+    %如果try 和catch之间的语句执行出错则执行下列语句
 catch Error
     
     %关闭PortAudio对象
@@ -564,7 +604,12 @@ catch Error
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
     
+%     %往并口发送一个0
+%     lptwrite(LPTAddress,0);
+    
     %在命令行输出前面的错误提示信息
     rethrow(Error);
+    
+   
     
 end

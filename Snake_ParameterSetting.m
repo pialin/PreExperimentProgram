@@ -34,7 +34,7 @@ TimeMessageFinish =2;
 TimeWaitPerMove = 100;
 
 %整个Trial最多花费的时间
-TimeMaxPerTrial = 200;]
+TimeMaxPerTrial = 200;
 
 %一个图案最多探索步数
 MaxNumStep = 500;
@@ -109,20 +109,27 @@ MinAudioVolume = 0.2;
 VolumeHint = 0.8;
 
 %加载提示音数据
-load DataHintAudio.mat;
+if exist('.\HintSound\DataHintAudio.mat','file')
+    load .\HintSound\DataHintAudio.mat;
+else
+    AudioDataHit = audioread('.\HintSound\Hit.wav')';
+    AudioDataHit = AudioDataHit/max(abs(AudioDataHit(:)));
+    
+    AudioDataOut = audioread('.\HintSound\Out.wav')';
+    AudioDataOut = AudioDataOut/max(abs(AudioDataOut(:)));
+    
+    AudioDataRoll = audioread('.\HintSound\Roll.wav')';
+    AudioDataRoll = AudioDataRoll/max(abs(AudioDataRoll(:)));
+    AudioDataRoll = AudioDataRoll(1:12000);
+    
+    AudioDataPass = audioread('.\HintSound\Pass.wav')';
+    AudioDataPass = AudioDataPass/max(abs(AudioDataPass(:)));
+    
+    AudioDataFinish = audioread('.\HintSound\Finish.wav')';
+    AudioDataFinish = AudioDataFinish/max(abs(AudioDataFinish(:)));
 
-% AudioDataHit = audioread('Hit.wav')';
-% AudioDataHit = AudioDataHit/max(AudioDataHit);
-% AudioDataOut = audioread('Out.wav')';
-% AudioDataOut = AudioDataOut/max(AudioDataOut);
-% AudioDataRoll = audioread('Roll.wav')';
-% AudioDataRoll = AudioDataRoll/max(AudioDataRoll);
-% AudioDataRoll = AudioDataRoll(1:18000);
-% AudioDataFinish = audioread('Finish.wav')';
-% AudioDataFinish = AudioDataFinish/max(AudioDataFinish);
-% 
-% save DataHintAudio.mat AudioDataHit AudioDataOut AudioDataRoll AudioDataFinish SampleRateAudio;
-
+    save .\HintSound\DataHintAudio.mat SampleRateAudio AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
+end
 
 %编码声音频率
 MatrixFreq = [  800 1008 1267

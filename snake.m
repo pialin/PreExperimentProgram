@@ -151,6 +151,7 @@ try
     
     HandleRollBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll;AudioDataRoll]);
     HandleOutBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataOut;AudioDataOut]);
+    HandlePassBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataPass;AudioDataPass]);
     HandleHitBuffer = PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataRoll,AudioDataHit;AudioDataRoll,AudioDataHit]);
     HandleFinishBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,[AudioDataFinish;AudioDataFinish]);
     
@@ -158,7 +159,7 @@ try
     %开始
 
     %PosCursor用于存储的光标位置变化情况，每一列分别代表一次位置的变动，第一行代表光标在方块矩阵的第几列，第二行代表光标在方块矩阵的第几行
-    PosCursor = zeros(2,NumMaxStepPerTrial*NumTrial);
+    PosCursor = zeros(2,MaxNumStep*NumTrial);
     %给定初始光标位置，第五行第五列即中心点处
     PosCursor(:,1) = [5,5];
     PosTarget = zeros(2,NumTrial);
@@ -209,6 +210,8 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -258,6 +261,9 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
+            
             %终止程序
             return;
         end
@@ -332,7 +338,7 @@ try
         
         FlagHitTarget = false;
         
-        while FlagHitTarget == false && NumStep<=NumMaxStepPerTrial
+        while FlagHitTarget == false 
             
             KeyDistance = PosTarget(:,trial)-PosCursor(:,NumStep);
             
@@ -488,6 +494,8 @@ try
                 ListenChar(0);
                 %恢复KbCheck函数对所有键盘输入的响应
                 RestrictKeysForKbCheck([]);
+%                 %往并口输出0
+%                 lptwrite(LPTAddress,0);
                 %终止程序
                 return;
                 
@@ -568,12 +576,23 @@ try
             
         end
         
+        TimeStart = GetSecs;
         if GetSecs>  TimeStart + TimeMaxPerTrial
             %并口输出标记250表示因探索时间过长自动跳至下一目标点
-            %             lptwrite(LPTAddress,250);
+            %             lptwrite(LPTAddress,248);
             %             WaitSecs(0.01);
             %             lptwrite(LPTAddress,0);
             %             WaitSecs(0.01);
+            %播放跳过提示音
+            PsychPortAudio('Stop', HandlePortAudio);
+            
+            %将之前保存在HandleRollBuffer里面的声音数据填入音频播放的Buffer里
+            PsychPortAudio('FillBuffer', HandlePortAudio,HandlePassBuffer);
+            
+            %播放声音
+            PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
+            %等待声音播放完毕
+            WaitSecs(numel(AudioDataPass)/SampleRateAudio);
         end
         
     end
@@ -624,6 +643,8 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
+%             %往并口输出0
+%             lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -644,10 +665,13 @@ try
     ListenChar(0);
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
+    %             %往并口输出0
+    %             lptwrite(LPTAddress,0);
+    
     %%
     %存储记录文件
     %记录文件路径
-    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'Snake',num2str(NumCodedDot)];
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName,filesep,'Snake'];
     if ~exist(RecordPath,'dir')
         mkdir(RecordPath);
     end
@@ -660,23 +684,20 @@ try
     %如果程序执行出错则执行下面程序
 catch Error
     
-    if exist('HandlePortAudio','var')
-        
-        %关闭PortAudio对象
-        PsychPortAudio('Stop', HandlePortAudio);
-        PsychPortAudio('Close', HandlePortAudio);
-        
-        %         clear HandlePortAudio ;
-        
-    end
-    %恢复屏幕显示优先级
+     %关闭PortAudio对象
+    PsychPortAudio('Close');
+    %恢复显示优先级
     Priority(0);
     %关闭所有窗口对象
     sca;
     
     %恢复键盘设定
+    %恢复Matlab命令行窗口对键盘输入的响应
     ListenChar(0);
+    %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
+    %             %往并口输出0
+    %             lptwrite(LPTAddress,0);
     
     
     %在命令行输出前面的错误提示信息
