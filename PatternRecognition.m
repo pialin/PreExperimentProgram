@@ -338,12 +338,16 @@ try
                 AudioDataRight = sum(AudioDataRight,1);
                 
                 %归一化
-                AudioData = reshape(mapminmax([AudioDataLeft(:),AudioDataRight(:)]),2,[]);
+                AudioData = mapminmax([AudioDataLeft,AudioDataRight]);
+                
+                AudioDataLeft = AudioData(1:TimeCodedSound*SampleRateAudio);
+                AudioDataRight = AudioData(TimeCodedSound*SampleRateAudio+1:end);
                 
                 PsychPortAudio('Stop', HandlePortAudio);
                 
                 %将声音数据填入音频播放的Buffer里
-                PsychPortAudio('FillBuffer', HandlePortAudio,[AudioData,zeros(2,round(TimeGapSilence*SampleRateAudio))]);
+                PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft,zeros(1,round(TimeGapSilence*SampleRateAudio));
+                    AudioDataRight,zeros(1,round(TimeGapSilence*SampleRateAudio))]);
                 
                 %播放声音
                 PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);

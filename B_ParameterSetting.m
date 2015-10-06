@@ -103,11 +103,13 @@ ColorFont = white;
 %“Ù∆µ“Ù¡ø…Ë÷√
 AudioVolume = 0.5;
 
+%√¿∂˚øÃ∂»
+SequenceMel = 1100:-100:300;
+
 %±‡¬Î…˘“Ù∆µ¬ 
-MatrixFreq = [  800 1008 1267
-                400  504  635 
-                200  252  317  ];
-            
+MatrixFreq = reshape (700*(10.^(SequenceMel/2595)-1),3,3);
+
+
 MatrixLeftAmp = [ 0.8 0.5 0.2
                   0.8 0.5 0.2
                   0.8 0.5 0.2 ];
@@ -115,8 +117,7 @@ MatrixLeftAmp = [ 0.8 0.5 0.2
 MatrixRightAmp = [ 0.2 0.5 0.8
                    0.2 0.5 0.8
                    0.2 0.5 0.8 ];  
-               
-MatrixFreq= MatrixFreq';
+
 MatrixLeftAmp =MatrixLeftAmp';
 MatrixRightAmp = MatrixRightAmp';
 
