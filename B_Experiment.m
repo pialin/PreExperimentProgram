@@ -15,16 +15,25 @@ cd(Path(1:FileSepIndex(end)));
 
 
 %从输入对话框获取受试者名字
+
 InputdlgOptions.Resize = 'on'; 
 InputdlgOptions.WindowStyle = 'normal';
 
+if exist('LastSubjectName.mat','file')
+    load LastSubjectName.mat;
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{LastSubjectName},InputdlgOptions);
+else
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
+end
 
-SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
 if isempty(SubjectName)
     return;
 end
 
+%存储本次输入的名字作为后续实验受试名称的默认值
+LastSubjectName = SubjectName{1};
 
+save LastSubjectName.mat LastSubjectName;
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -215,11 +224,11 @@ try
     
     PsychPortAudio('Stop', HandlePortAudio);
     
-    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight]);
+    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,round(0.7*SampleRateAudio)),AudioDataLeft;zeros(1,round(0.7*SampleRateAudio)),AudioDataRight]);
     
     
     %播放声音
-    PsychPortAudio('Start', HandlePortAudio, 3, AudioStartTime, WaitUntilDeviceStart);
+    PsychPortAudio('Start', HandlePortAudio, AudioCompetition, AudioStartTime, WaitUntilDeviceStart);
     
     
     for frame =1:round(TimeCountdown*FramePerSecond)
@@ -343,7 +352,7 @@ try
         PsychPortAudio('Stop', HandlePortAudio);
         
         %把编码声音数据填充到PortAudio对象的Buffer中
-        PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,round(TimeGapSilence*SampleRateAudio),AudioDataLeft);
+        PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,round(TimeGapSilence*SampleRateAudio)),AudioDataLeft;
                     zeros(1,round(TimeGapSilence*SampleRateAudio)),AudioDataRight]);
         %播放编码声音
         PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);

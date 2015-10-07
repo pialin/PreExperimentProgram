@@ -42,6 +42,6 @@ TimeCodedSound_mat = TimeCodedSound;
 MatrixLeftAmp_mat = MatrixLeftAmp;
 MatrixRightAmp_mat = MatrixRightAmp;
 
-save DataPureTone.mat DataPureTone MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+save .\CodeSound\DataPureTone.mat DataPureTone MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
 
 end

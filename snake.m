@@ -15,14 +15,25 @@ cd(Path(1:PosFileSep(end)));
 
 
 %从输入对话框获取受试者名字
+
 InputdlgOptions.Resize = 'on'; 
 InputdlgOptions.WindowStyle = 'normal';
 
+if exist('LastSubjectName.mat','file')
+    load LastSubjectName.mat;
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{LastSubjectName},InputdlgOptions);
+else
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
+end
 
-SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
 if isempty(SubjectName)
     return;
 end
+
+%存储本次输入的名字作为后续实验受试名称的默认值
+LastSubjectName = SubjectName{1};
+
+save LastSubjectName.mat LastSubjectName;
 
 
 

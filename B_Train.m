@@ -272,12 +272,14 @@ try
                 AudioDataRight = sum(AudioDataRight,1);
                 
                 %归一化
-                AudioData = mapminmax(AudioDataLeft(:),AudioDataRight(:));
+                AudioData = mapminmax([AudioDataLeft,AudioDataRight]);
                 
-                
+                AudioDataLeft = AudioData(1:TimeCodedSound*SampleRateAudio);
+                AudioDataRight = AudioData(TimeCodedSound*SampleRateAudio+1:end);
+
                 
                 %填充到PortAudio对象的Buffer中
-                PsychPortAudio('FillBuffer', HandlePortAudio,reshape(AudioData,2,[]));
+                PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
                 %播放声音
                 PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
                 

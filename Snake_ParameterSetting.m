@@ -12,9 +12,6 @@ TimeGapSilence = 2;
 
 
 
-
-
-
 %%
 %时间参数设置
 
@@ -25,7 +22,7 @@ TimePrepare = 10;
 TimeCountdown = 6; 
 
 %实验结束显示时长（单位：秒）
-TimeMessageFinish =2;
+TimeMessageFinish =1;
 
 %%
 %阈值设定
@@ -77,8 +74,8 @@ ColorDot = red;
 %目标点颜色
 ColorTarget =black;
 
-%圆点大小（默认直径为方块边长乘以0.5）
-SizeDot = 0.5* SizeSquare ;
+%圆点大小（默认直径为方块边长乘以0.6）
+SizeDot = 0.6* SizeSquare ;
 
 %连线颜色和宽度
 ColorLine = red;
@@ -108,6 +105,13 @@ MinAudioVolume = 0.2;
 %提示音音量设置
 VolumeHint = 0.8;
 
+%修改工作路径至当前M文件所在目录
+Path = mfilename('fullpath');
+PosFileSep = strfind(Path,filesep);
+cd(Path(1:PosFileSep(end)));
+
+
+
 %加载提示音数据
 if exist('.\HintSound\DataHintAudio.mat','file')
     load .\HintSound\DataHintAudio.mat;
@@ -120,7 +124,7 @@ else
     
     AudioDataRoll = audioread('.\HintSound\Roll.wav')';
     AudioDataRoll = AudioDataRoll/max(abs(AudioDataRoll(:)));
-    AudioDataRoll = AudioDataRoll(1:12000);
+    AudioDataRoll = AudioDataRoll(1:8000)*0.6;
     
     AudioDataPass = audioread('.\HintSound\Pass.wav')';
     AudioDataPass = AudioDataPass/max(abs(AudioDataPass(:)));
@@ -131,10 +135,11 @@ else
     save .\HintSound\DataHintAudio.mat SampleRateAudio AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
 end
 
+%美尔刻度
+SequenceMel = [900 1000 1100  600  700  800 300  400  500];
+
 %编码声音频率
-MatrixFreq = [  800 1008 1267
-                400  504  635 
-                200  252  317  ];
+MatrixFreq = reshape (700*(10.^(SequenceMel/2595)-1),3,3);
             
 MatrixLeftAmp = [ 0.8 0.5 0.2
                   0.8 0.5 0.2
@@ -144,7 +149,6 @@ MatrixRightAmp = [ 0.2 0.5 0.8
                    0.2 0.5 0.8
                    0.2 0.5 0.8 ];  
                
-MatrixFreq= MatrixFreq';
 MatrixLeftAmp =MatrixLeftAmp';
 MatrixRightAmp = MatrixRightAmp';
 
@@ -152,23 +156,36 @@ MatrixRightAmp = MatrixRightAmp';
 SampleRateAudio = 48000;
 
 %音频数据生成部分
-load DataPureTone.mat;
-
-if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
-        SampleRateAudio==SampleRateAudio_mat &&...
-        TimeCodedSound == TimeCodedSound_mat &&...
-        isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
-        isequal(MatrixRightAmp,MatrixRightAmp_mat)
+%检查编码声音数据是否存在
+if exist('.\CodeSound\DataPureTone.mat','file')
+    %若存在，则读取数据
+    load .\CodeSound\DataPureTone.mat;
+    %并将频率、采样率、编码时长、左右耳强度与数据文件进行对比，若一致，则无需重新生成数据文件
+    if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
+            SampleRateAudio==SampleRateAudio_mat &&...
+            TimeCodedSound == TimeCodedSound_mat &&...
+            isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
+            isequal(MatrixRightAmp,MatrixRightAmp_mat)
         
-    clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
-
+        clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+    %若不一致则重新生成数据文件，并读取该文件
+    else
+        
+        AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+        
+        load .\CodeSound\DataPureTone.mat DataPureTone;
+        disp('DataPureTone已经更新!')
+        
+    end
+%若数据文件不存在，则直接生成数据文件，并读取该文件
 else
     
-     AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio); 
-     
-     load DataPureTone.mat DataPureTone
-
-
+    AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+    
+    load .\CodeSound\DataPureTone.mat DataPureTone;
+    
+    disp('生成DataPureTone!')
+    
 end
 
 

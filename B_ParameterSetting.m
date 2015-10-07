@@ -9,6 +9,9 @@
 %编码点数
 NumCodedDot = 2;
 
+%音频重放次数
+AudioCompetition = 4;
+
 %Trial数 （白噪->编码声音->无声 为一个Trail）
 NumTrial = 3;
 
@@ -41,7 +44,7 @@ AudioRepetition = 3;
 TimeBreak = 3;
 
 %实验结束显示时长（单位：秒）
-TimeMessageFinish =2;
+TimeMessageFinish =1;
 
 
 
@@ -74,8 +77,8 @@ ColorDot  = red;
 
 
 
-%圆点大小（默认直径为方块边长乘以0.5）
-SizeDot = 0.5* SizeSquare ;
+%圆点大小（默认直径为方块边长乘以0.6）
+SizeDot = 0.6* SizeSquare ;
 
 
 %用于训练程序的圆点颜色
@@ -104,7 +107,7 @@ ColorFont = white;
 AudioVolume = 0.5;
 
 %美尔刻度
-SequenceMel = 1100:-100:300;
+SequenceMel = [900 1000 1100  600  700  800 300  400  500];
 
 %编码声音频率
 MatrixFreq = reshape (700*(10.^(SequenceMel/2595)-1),3,3);
@@ -125,24 +128,38 @@ MatrixRightAmp = MatrixRightAmp';
 SampleRateAudio = 48000;
 
 %音频数据生成部分
-load DataPureTone.mat;
-
-if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
-        SampleRateAudio==SampleRateAudio_mat &&...
-        TimeCodedSound == TimeCodedSound_mat &&...
-        isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
-        isequal(MatrixRightAmp,MatrixRightAmp_mat)
+%检查编码声音数据是否存在
+if exist('.\CodeSound\DataPureTone.mat','file')
+    %若存在，则读取数据
+    load .\CodeSound\DataPureTone.mat;
+    %并将频率、采样率、编码时长、左右耳强度与数据文件进行对比，若一致，则无需重新生成数据文件
+    if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
+            SampleRateAudio==SampleRateAudio_mat &&...
+            TimeCodedSound == TimeCodedSound_mat &&...
+            isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
+            isequal(MatrixRightAmp,MatrixRightAmp_mat)
         
-    clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
-
+        clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+    %若不一致则重新生成数据文件，并读取该文件
+    else
+        
+        AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+        
+        load .\CodeSound\DataPureTone.mat DataPureTone;
+        disp('DataPureTone已经更新!')
+        
+    end
+%若数据文件不存在，则直接生成数据文件，并读取该文件
 else
     
-     AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio); 
-     
-     load DataPureTone.mat DataPureTone;
-
-
+    AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+    
+    load .\CodeSound\DataPureTone.mat DataPureTone;
+    
+    disp('生成DataPureTone!')
+    
 end
+
 
 DataWhiteNoise = randn(2,TimeWhiteNoise*SampleRateAudio);
 

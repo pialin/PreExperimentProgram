@@ -1,2 +1,6 @@
 #忽略所有的asv文件
 *.asv
+
+LastSubjectName.mat
+
+/RecordFiles
