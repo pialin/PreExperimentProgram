@@ -13,16 +13,26 @@ Path = mfilename('fullpath');
 PosFileSep = strfind(Path,filesep);
 cd(Path(1:PosFileSep(end)));
 
-
 %从输入对话框获取受试者名字
-InputdlgOptions.Resize = 'on';
+
+InputdlgOptions.Resize = 'on'; 
 InputdlgOptions.WindowStyle = 'normal';
 
+if exist('LastSubjectName.mat','file')
+    load LastSubjectName.mat;
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{LastSubjectName},InputdlgOptions);
+else
+    SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
+end
 
-SubjectName = inputdlg('Subject Name:','请输入受试者名字',[1,42],{'ABC'},InputdlgOptions);
 if isempty(SubjectName)
     return;
 end
+
+%存储本次输入的名字作为后续实验受试名称的默认值
+LastSubjectName = SubjectName{1};
+
+save LastSubjectName.mat LastSubjectName;
 
 %%
 %随机数生成器状态设置
@@ -304,19 +314,20 @@ try
         while GetSecs <= TimeStart + TimeMaxPerPattern
             
             %将光标位置换算成行数和列数便于后续运算
-            %行数X
-            XYCursor(1) =  mod((PosCursor(1,NumStep,trial)-1),NumSquarePerRow)+1;
-            %列数Y
-            XYCursor(2) =  fix((PosCursor(1,NumStep,trial)-1)/NumSquarePerRow)+1;
+            %行数
+            XYCursor(1) =  fix((PosCursor(1,NumStep,trial)-1)/NumSquarePerRow)+1;
+            %列数
+            XYCursor(2) =  mod((PosCursor(1,NumStep,trial)-1),NumSquarePerRow)+1;
+            
             
             %计算九宫格的九个点的位置
-            horizon = repmat(XYCursor(1)-1:XYCursor(1)+1,1,3);
-            vertical = reshape(repmat((XYCursor(2)-2:XYCursor(2))*NumSquarePerRow,3,1),1,[]);
+            
+            vertical = reshape(repmat((XYCursor(1)-2:XYCursor(1))*NumSquarePerRow,3,1),1,[]);
+            horizon = repmat(XYCursor(2)-1:XYCursor(2)+1,1,3);
             
             SequenceFrameDot =   horizon + vertical;
             
             %将9*9区域外的点去掉
-            SequenceFrameDot(SequenceFrameDot<0)=[];
             
             %计算九宫格和图案的重合点
             InterSectionDot = intersect(SequencePatternDot{IndexPattern(trial)},SequenceFrameDot);
@@ -417,18 +428,19 @@ try
                 NumStep = NumStep +1;
                 %根据按下的方向键计算新的光标位置，暂时存入TempXYCursor中
                 if KeyCode(KbName('LeftArrow'))
-                    TempXYCursor = XYCursor+[-1,0];
-                elseif KeyCode(KbName('RightArrow'))
-                    TempXYCursor = XYCursor+[1,0];
-                elseif KeyCode(KbName('UpArrow'))
                     TempXYCursor = XYCursor+[0,-1];
-                elseif KeyCode(KbName('DownArrow'))
+                elseif KeyCode(KbName('RightArrow'))
                     TempXYCursor = XYCursor+[0,1];
+                elseif KeyCode(KbName('UpArrow'))
+                    TempXYCursor = XYCursor+[-1,0];
+                elseif KeyCode(KbName('DownArrow'))
+                    TempXYCursor = XYCursor+[1,0];
                 end
                 
                 
             else
                 if KeyCode(KbName('space'))
+                    PsychPortAudio('Stop', HandlePortAudio);
                     break;
                 else
                     %关闭PortAudio对象
@@ -473,7 +485,7 @@ try
             else
                 
                 %记录移动后光标的位置
-                PosCursor(1,NumStep,trial)=TempXYCursor(1)+NumSquarePerRow*(TempXYCursor(2)-1);
+                PosCursor(1,NumStep,trial)=NumSquarePerRow*(TempXYCursor(1)-1)+TempXYCursor(2);
                 
                 %播放移动声音
                 PsychPortAudio('Stop', HandlePortAudio);
