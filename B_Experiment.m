@@ -165,19 +165,22 @@ try
     vbl = Screen('Flip', PointerWindow);
     
     %%
-    %     %并口标记251表示实验开始
-    %     lptwrite(LPTAddress,251);
-    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-    %     WaitSecs(0.01);
-    %     %每次打完标记后需要重新将并口置零
-    %     lptwrite(LPTAddress,0);
-    %     WaitSecs(0.01);
-    
+        %并口标记251表示实验开始
+        lptwrite(LPTAddress,251);
+
     
     
     %等待阶段
     %时长为准备时长减去倒计时时长
     for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+        
+        if frame ==2 
+            
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
+ 
+        end
+        
         %绘制提示语
         DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
         %提示程序所有内容已绘制完成
@@ -186,6 +189,14 @@ try
         %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            
+            %并口标记253表示实验因为ESC键被按下而中止
+            lptwrite(LPTAddress,253);
+            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+            WaitSecs(0.01);
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
@@ -240,6 +251,13 @@ try
         %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            %并口标记253表示实验因为ESC键被按下而中止
+            lptwrite(LPTAddress,253);
+            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+            WaitSecs(0.01);
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
@@ -303,8 +321,8 @@ try
         %播放白噪声
         PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
         
-        %     %并口标记201表示开始播放白噪声
-        %     lptwrite(LPTAddress,251);
+            %并口标记201表示开始播放白噪声
+            lptwrite(LPTAddress,201);
 
         
         
@@ -312,12 +330,12 @@ try
         %%
         %白噪声呈现阶段
         %时长由ParameterSetting中的TimeWhiteNoise决定
-        for Frame =1:round(TimeWhiteNoise*FramePerSecond)
+        for frame =1:round(TimeWhiteNoise*FramePerSecond)
             
             if frame == 2
 
-                %     %每次打完标记后需要重新将并口置零
-                %     lptwrite(LPTAddress,0);
+                    %每次打完标记后需要重新将并口置零
+                    lptwrite(LPTAddress,0);
             
             end
             
@@ -328,6 +346,14 @@ try
             %读取键盘输入，若Esc键被按下则立刻退出程序
             [IsKeyDown,~,KeyCode] = KbCheck;
             if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                
+                %并口标记253表示实验因为ESC键被按下而中止
+                lptwrite(LPTAddress,253);
+                %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+                WaitSecs(0.01);
+                %每次打完标记后需要重新将并口置零
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
@@ -357,8 +383,8 @@ try
         %播放编码声音
         PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
         
-        %     %并口标记1-200表示开始播放编码声音，数字代表目前的trial数
-        %     lptwrite(LPTAddress,mod(trial-1,200)+1);
+            %并口标记1-200表示开始播放编码声音，数字代表目前的trial数
+            lptwrite(LPTAddress,mod(trial-1,200)+1);
 
         
         %%
@@ -367,8 +393,8 @@ try
             
             if frame ==2
 
-                %     %每次打完标记后需要重新将并口置零
-                %     lptwrite(LPTAddress,0);
+                    %每次打完标记后需要重新将并口置零
+                    lptwrite(LPTAddress,0);
 
 
             end
@@ -393,6 +419,13 @@ try
             %读取键盘输入，若Esc键被按下则立刻退出程序
             [IsKeyDown,~,KeyCode] = KbCheck;
             if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                %并口标记253表示实验因为ESC键被按下而中止
+                lptwrite(LPTAddress,253);
+                %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+                WaitSecs(0.01);
+                %每次打完标记后需要重新将并口置零
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
@@ -415,8 +448,8 @@ try
         
         PsychPortAudio('Stop', HandlePortAudio);
         
-        %     %并口标记1-200表示编码声音结束，数字代表目前的trial数
-        %     lptwrite(LPTAddress,mod(trial-1,200)+1);
+            %并口标记1-200表示编码声音结束，数字代表目前的trial数
+            lptwrite(LPTAddress,mod(trial-1,200)+1);
 
         
         %%
@@ -425,8 +458,8 @@ try
             
             if frame ==2 
 
-                %     %每次打完标记后需要重新将并口置零
-                %     lptwrite(LPTAddress,0);
+                    %每次打完标记后需要重新将并口置零
+                    lptwrite(LPTAddress,0);
             
             end
             
@@ -444,6 +477,13 @@ try
             %读取键盘输入，若Esc键被按下则立刻退出程序
             [IsKeyDown,~,KeyCode] = KbCheck;
             if IsKeyDown && KeyCode(KbName('ESCAPE'))
+                %并口标记253表示实验因为ESC键被按下而中止
+                lptwrite(LPTAddress,253);
+                %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+                WaitSecs(0.01);
+                %每次打完标记后需要重新将并口置零
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
@@ -469,14 +509,14 @@ try
     
     %%   
     %并口标记254表示实验正常结束
-    %     lptwrite(LPTAddress,254);
+        lptwrite(LPTAddress,254);
 
     
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
         
         if frame ==2 
 
-            %     lptwrite(LPTAddress,0);
+                lptwrite(LPTAddress,0);
        
         end
         
@@ -486,6 +526,14 @@ try
         %扫描键盘，如果Esc键被按下则退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            
+            %并口标记253表示实验因为ESC键被按下而中止
+            lptwrite(LPTAddress,253);
+            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+            WaitSecs(0.01);
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             
             %关闭PortAudio对象
             PsychPortAudio('Close');

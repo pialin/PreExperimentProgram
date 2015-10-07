@@ -188,13 +188,13 @@ try
     
     %%
     
-    %     %并口标记251表示实验开始（准备阶段开始）
-    %     lptwrite(LPTAddress,251);
-    %     %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-    %     WaitSecs(0.01);
-    %     %每次打完标记后需要重新将并口置零
-    %     lptwrite(LPTAddress,0);
-    %     WaitSecs(0.01);
+    %并口标记251表示实验开始（准备阶段开始）
+    lptwrite(LPTAddress,251);
+    %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+    WaitSecs(0.01);
+    %每次打完标记后需要重新将并口置零
+    lptwrite(LPTAddress,0);
+    WaitSecs(0.01);
     
     %等待阶段
     %时长为准备时长减去倒计时时长
@@ -207,6 +207,11 @@ try
         %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            %输出并口标记253表示实验被人为按下Esc键所中止
+            lptwrite(LPTAddress,253);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
@@ -218,8 +223,8 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+            %往并口输出0
+            lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -261,6 +266,11 @@ try
         %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            %输出并口标记253表示实验被人为按下Esc键所中止
+            lptwrite(LPTAddress,253);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
@@ -274,8 +284,8 @@ try
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
             
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+            %往并口输出0
+            lptwrite(LPTAddress,0);
             
             %终止程序
             return;
@@ -298,6 +308,8 @@ try
     
     %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
     PosCursor = zeros (1,MaxNumStep,NumTrial);
+    
+    TempTrial = 0;
     
     %循环NumTrial次，即进行NumTrial个图案的探索
     for trial = 1:NumTrial
@@ -365,11 +377,14 @@ try
                 
             end
             
-            %         %输出并口代表声音输出开始，实际数字为当前trial+200
-            %         lptwrite(LPTAddress,200+mod(trial,40)+1);
-            %         WaitSecs(0.01);
-            %         lptwrite(LPTAddress,0);
-            %         WaitSecs(0.01);
+            %输出并口代表声音输出开始，实际数字为当前trial+200
+           if trial ~=  TempTrial    
+                lptwrite(LPTAddress,200+mod(trial-1,40)+1);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
+            end
+            TempTrial = trial;
             
             %计算并绘制以光标为中心的九宫格
             RectSquareFrame = CenterRectOnPointd(RectBaseSquareFrame,SequenceXSquareCenter(PosCursor(1,NumStep,trial)),SequenceYSquareCenter(PosCursor(1,NumStep,trial)));
@@ -397,24 +412,24 @@ try
             
             if any(KeyCode(KbName('LeftArrow'):KbName('DownArrow')))
                 %如果按下方向键，则并口输出标记记录按下按键的次数
-                %                 lptwrite(LPTAddress,mod(NumStep-1,200)+1);
-                %                 WaitSecs(0.01);
-                %                 lptwrite(LPTAddress,0);
-                %                 WaitSecs(0.01);
+                lptwrite(LPTAddress,mod(NumStep-1,200)+1);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 
             elseif KeyCode(KbName('ESCAPE'))
-                %输出并口标记252表示实验被人为按下Esc键所中止
-                %                 lptwrite(LPTAddress,252);
-                %                 WaitSecs(0.01);
-                %                 lptwrite(LPTAddress,0);
-                %                 WaitSecs(0.01);
+                %输出并口标记253表示实验被人为按下Esc键所中止
+                lptwrite(LPTAddress,253);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 
             elseif ~KeyCode(KbName('space'))
-                %输出并口标记253表示实验因长时间没有按键操作而中止
-                %                 lptwrite(LPTAddress,253);
-                %                 WaitSecs(0.01);
-                %                 lptwrite(LPTAddress,0);
-                %                 WaitSecs(0.01);
+                %输出并口标记252表示实验因长时间没有按键操作而中止
+                lptwrite(LPTAddress,252);
+                WaitSecs(0.01);
+                lptwrite(LPTAddress,0);
+                WaitSecs(0.01);
                 
                 
             end
@@ -455,8 +470,8 @@ try
                     ListenChar(0);
                     %恢复KbCheck函数对所有键盘输入的响应
                     RestrictKeysForKbCheck([]);
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+                    %往并口输出0
+                    lptwrite(LPTAddress,0);
                     
                     %终止程序
                     return;
@@ -503,10 +518,10 @@ try
         
         if GetSecs>  TimeStart + TimeMaxPerPattern
             %并口输出标记250表示因探索时间过长自动跳至下一图案
-            %             lptwrite(LPTAddress,250);
-            %             WaitSecs(0.01);
-            %             lptwrite(LPTAddress,0);
-            %             WaitSecs(0.01);
+            lptwrite(LPTAddress,250);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             
             %播放跳过提示音
             PsychPortAudio('Stop', HandlePortAudio);
@@ -524,7 +539,7 @@ try
     
     %%
     %并口标记254表示实验正常结束
-    %     lptwrite(LPTAddress,254);
+    lptwrite(LPTAddress,254);
     
     %播放完成提示音
     PsychPortAudio('Stop', HandlePortAudio);
@@ -540,7 +555,7 @@ try
         
         if frame == 2
             
-            %     lptwrite(LPTAddress,0);
+            lptwrite(LPTAddress,0);
             
         end
         
@@ -550,6 +565,12 @@ try
         %扫描键盘，如果Esc键被按下则退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
+            
+            %输出并口标记253表示实验被人为按下Esc键所中止
+            lptwrite(LPTAddress,253);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
             
             %关闭PortAudio对象
             PsychPortAudio('Close');
@@ -564,8 +585,8 @@ try
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
             
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+            %往并口输出0
+            lptwrite(LPTAddress,0);
             
             %终止程序
             return;
@@ -588,8 +609,8 @@ try
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
     
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+    %往并口输出0
+    lptwrite(LPTAddress,0);
     
     %%
     %存储记录文件
@@ -620,8 +641,8 @@ catch Error
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
     
-%     %往并口发送一个0
-%     lptwrite(LPTAddress,0);
+    %往并口发送一个0
+    lptwrite(LPTAddress,0);
     
     %在命令行输出前面的错误提示信息
     rethrow(Error);

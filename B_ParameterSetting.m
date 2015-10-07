@@ -1,4 +1,4 @@
-%此程序设置A编码实验主程序的一些参数
+%此程序设置B编码实验主程序的一些参数
 %软件环境：
 %Psychtoolbox:3.0.12 
 %Matlab:R2015a x64
@@ -183,253 +183,253 @@ LPTAddress = 53264;
 %201:表示播放高斯白噪声
 %202-250:暂时保留
 %251:表示实验开始(准备阶段开始)
+%252：保留
+%253：表示实验因为ESC键被按下而中止
 %254:表示实验正常结束
 
 
-
-
-%%
-%参数验证部分：
-
-%%
-%基本参数 
-if isscalar(NumCodedDot)  && isnumeric(NumCodedDot) &&  fix(NumCodedDot)==NumCodedDot && NumCodedDot <= NumSquare && NumCodedDot>0
-    
-else   
-    
-    errordlg('NumCodedDot设置有误','参数设置错误');
-    return;
-    
-end
-
-if isscalar(NumTrial)  && isnumeric(NumTrial) &&  fix(NumTrial)==NumTrial && NumTrial>0
-    
-else   
-    
-    errordlg('NumTrial设置有误','参数设置错误');
-    return;
-    
-end
-
-
-
-%时间参数设置
-if isscalar(TimePrepare)  && isnumeric(TimePrepare) &&  TimePrepare>= TimeCountdown && TimePrepare >0
-    
-else
-     errordlg('TimePrepare设置有误','参数设置错误');
-     return;
-     
-end
-
-if isscalar(TimeCountdown)  && isnumeric(TimeCountdown) &&  TimeCountdown<= TimeCountdown && TimeCountdown >0
-     
-else
-    
-     errordlg('TimeCountdown设置有误','参数设置错误');
-     return;
-     
-end
-
-
-if isscalar(TimeWhiteNoise)  && isnumeric(TimeWhiteNoise) &&  TimeWhiteNoise>0
-    
-else
-    
-     errordlg('TimeWhiteNoise设置有误','参数设置错误');
-     return;
-     
-end
-
-if isscalar(TimeCodedSound)  && isnumeric(TimeCodedSound) &&  TimeCodedSound>0
-    
-else
-    
-     errordlg('TimeCodedSound设置有误','参数设置错误');
-     return;
-     
-end
-
-if isscalar(TimeBreak)  && isnumeric(TimeBreak) &&  TimeBreak>0
-    
-else
-    
-     errordlg('TimeSilence设置有误','参数设置错误');
-     return;
-     
-end
-
-
-%显示参数设置
-
-if (isscalar(ColorBackground) || numel(ColorBackground) == 3) && isnumeric(ColorBackground) && ...
-      all(ColorBackground>=0)  && all(ColorBackground<=1) 
-
-else
-     errordlg('ColorBackground设置有误','参数设置错误');
-     return;
-   
-end
-
-if isscalar(NumSquare) && isnumeric(NumSquare) && NumSquare>0 && fix(NumSquarePerRow) == NumSquarePerRow 
-
-else
-     errordlg('NumSquare设置有误','参数设置错误');
-     return;
-   
-end
-
-if (isscalar(ColorSquare) || numel(ColorSquare) == 3) && isnumeric(ColorSquare) && ...
-      all(ColorSquare>=0)  && all(ColorSquare<=1)
-
-else
-     errordlg('ColorSquare设置有误','参数设置错误');
-     return;
-   
-end
-
-
-if isscalar(SizeSquare) &&  isnumeric(SizeSquare) && SizeSquare>0  && SizeSquare <=SizeScreenY/NumSquarePerRow 
-
-else
-    errordlg('SizeSquare设置有误','参数设置错误'); 
-    return;
-    
-end
-
-if isscalar(GapWidth) &&  isnumeric(GapWidth) && GapWidth>0  && GapWidth <=SizeSquare 
-
-else
-    errordlg('GapWidth设置有误','参数设置错误');
-    return;
-    
-end
-
-
-
-if (isscalar(ColorDot) || numel(ColorDot) == 3) && isnumeric(ColorDot) && ...
-    all(ColorDot>=0)  && all(ColorDot<=1) 
-
-else
-     errordlg('ColorDot设置有误','参数设置错误');
-     return;
-   
-end
-
-
-if isscalar(SizeDot) &&  isnumeric(SizeDot) && SizeDot>0  && SizeDot <=SizeSquare 
-
-else
-    errordlg('SizeDot设置有误','参数设置错误'); 
-    return;
-    
-end
-
-if (isscalar(ColorDotUncoded) || numel(ColorDotUncoded) == 3) && isnumeric(ColorDotUncoded) && ...
-    all(ColorDotUncoded>=0)  && all(ColorDotUncoded<=1) 
-
-else
-     errordlg('ColorDotUncoded设置有误','参数设置错误');
-     return;
-   
-end
-
-
-if (isscalar(ColorDotCoded) || numel(ColorDotCoded) == 3) && isnumeric(ColorDotCoded) && ...
-    all(ColorDotCoded>=0)  && all(ColorDotCoded<=1)
-
-else
-     errordlg('ColorDotCoded设置有误','参数设置错误');
-     return;
-   
-end
-
-if (isscalar(ColorLine) || numel(ColorLine) == 3) && isnumeric(ColorLine) && ...
-    all(ColorLine>=0)  && all(ColorLine<=1) 
-
-else
-     errordlg('ColorLine设置有误','参数设置错误');
-     return;
-   
-end
-
-if isscalar(WidthLine) &&  isnumeric(WidthLine) && WidthLine>0  && WidthLine<=WidthLine && fix(WidthLine) == WidthLine
-
-else
-    errordlg('WidthLine设置有误','参数设置错误'); 
-    return;
-    
-end
-
-
-if isscalar(NumDotLimit)  && isnumeric(NumDotLimit) &&  fix(NumDotLimit)==NumDotLimit && NumDotLimit <= NumSquare && NumDotLimit>0
-    
-else   
-    
-    errordlg('NumDotLimit设置有误','参数设置错误');
-    return;
-    
-end
-
-
-if isscalar(SizeFont) && isnumeric(SizeFont) && SizeFont>0 && fix(SizeFont) ==SizeFont
-
-else
-    errordlg('SizeFont设置有误','参数设置错误');
-    return;
-    
-end
-
-if (isscalar(ColorFont) || numel(ColorFont) == 3) && isnumeric(ColorFont) && ...
-    all(ColorFont>=0)  && all(ColorFont<=1) 
-
-else
-     errordlg('ColorFont设置有误','参数设置错误');
-     return;
-   
-end
-
-
-%音频参数验证
-
-if isscalar(AudioVolume) && isnumeric(AudioVolume)&& AudioVolume>=0 && AudioVolume<=1
-    
-else
-      errordlg('AudioVolume设置有误','参数设置错误');
-      return;
-end
-
-if ismatrix(MatrixFreq) && isnumeric(MatrixFreq) && numel(MatrixFreq)== NumSquare && all(MatrixFreq(:)>0)
-    
-else
-      errordlg('MatrixFreq设置有误','参数设置错误');
-      return;
-
-end
-
-if ismatrix(MatrixLeftAmp) && isnumeric(MatrixLeftAmp) && numel(MatrixLeftAmp)== NumSquare && all(MatrixLeftAmp(:)>=0)  && all(MatrixLeftAmp(:) <=1)
-    
-else
-      errordlg('MatrixLeftAmp设置有误','参数设置错误');
-      return;
-
-end
-
-if ismatrix(MatrixRightAmp) && isnumeric(MatrixRightAmp) && numel(MatrixRightAmp)== NumSquare && all(MatrixRightAmp(:)>=0)  && all(MatrixRightAmp(:) <=1)
-    
-else
-      errordlg('MatrixRightAmp设置有误','参数设置错误');
-      return;
-
-end
-
-
-if isscalar(SampleRateAudio) && isnumeric(SampleRateAudio) && SampleRateAudio>0
-
-else
-    errordlg('SampleRateAudio设置有误','参数设置错误');
-    return;
-end
+% %%
+% %参数验证部分：
+% 
+% %%
+% %基本参数 
+% if isscalar(NumCodedDot)  && isnumeric(NumCodedDot) &&  fix(NumCodedDot)==NumCodedDot && NumCodedDot <= NumSquare && NumCodedDot>0
+%     
+% else   
+%     
+%     errordlg('NumCodedDot设置有误','参数设置错误');
+%     return;
+%     
+% end
+% 
+% if isscalar(NumTrial)  && isnumeric(NumTrial) &&  fix(NumTrial)==NumTrial && NumTrial>0
+%     
+% else   
+%     
+%     errordlg('NumTrial设置有误','参数设置错误');
+%     return;
+%     
+% end
+% 
+% 
+% 
+% %时间参数设置
+% if isscalar(TimePrepare)  && isnumeric(TimePrepare) &&  TimePrepare>= TimeCountdown && TimePrepare >0
+%     
+% else
+%      errordlg('TimePrepare设置有误','参数设置错误');
+%      return;
+%      
+% end
+% 
+% if isscalar(TimeCountdown)  && isnumeric(TimeCountdown) &&  TimeCountdown<= TimeCountdown && TimeCountdown >0
+%      
+% else
+%     
+%      errordlg('TimeCountdown设置有误','参数设置错误');
+%      return;
+%      
+% end
+% 
+% 
+% if isscalar(TimeWhiteNoise)  && isnumeric(TimeWhiteNoise) &&  TimeWhiteNoise>0
+%     
+% else
+%     
+%      errordlg('TimeWhiteNoise设置有误','参数设置错误');
+%      return;
+%      
+% end
+% 
+% if isscalar(TimeCodedSound)  && isnumeric(TimeCodedSound) &&  TimeCodedSound>0
+%     
+% else
+%     
+%      errordlg('TimeCodedSound设置有误','参数设置错误');
+%      return;
+%      
+% end
+% 
+% if isscalar(TimeBreak)  && isnumeric(TimeBreak) &&  TimeBreak>0
+%     
+% else
+%     
+%      errordlg('TimeSilence设置有误','参数设置错误');
+%      return;
+%      
+% end
+% 
+% 
+% %显示参数设置
+% 
+% if (isscalar(ColorBackground) || numel(ColorBackground) == 3) && isnumeric(ColorBackground) && ...
+%       all(ColorBackground>=0)  && all(ColorBackground<=1) 
+% 
+% else
+%      errordlg('ColorBackground设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% if isscalar(NumSquare) && isnumeric(NumSquare) && NumSquare>0 && fix(NumSquarePerRow) == NumSquarePerRow 
+% 
+% else
+%      errordlg('NumSquare设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% if (isscalar(ColorSquare) || numel(ColorSquare) == 3) && isnumeric(ColorSquare) && ...
+%       all(ColorSquare>=0)  && all(ColorSquare<=1)
+% 
+% else
+%      errordlg('ColorSquare设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% 
+% if isscalar(SizeSquare) &&  isnumeric(SizeSquare) && SizeSquare>0  && SizeSquare <=SizeScreenY/NumSquarePerRow 
+% 
+% else
+%     errordlg('SizeSquare设置有误','参数设置错误'); 
+%     return;
+%     
+% end
+% 
+% if isscalar(GapWidth) &&  isnumeric(GapWidth) && GapWidth>0  && GapWidth <=SizeSquare 
+% 
+% else
+%     errordlg('GapWidth设置有误','参数设置错误');
+%     return;
+%     
+% end
+% 
+% 
+% 
+% if (isscalar(ColorDot) || numel(ColorDot) == 3) && isnumeric(ColorDot) && ...
+%     all(ColorDot>=0)  && all(ColorDot<=1) 
+% 
+% else
+%      errordlg('ColorDot设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% 
+% if isscalar(SizeDot) &&  isnumeric(SizeDot) && SizeDot>0  && SizeDot <=SizeSquare 
+% 
+% else
+%     errordlg('SizeDot设置有误','参数设置错误'); 
+%     return;
+%     
+% end
+% 
+% if (isscalar(ColorDotUncoded) || numel(ColorDotUncoded) == 3) && isnumeric(ColorDotUncoded) && ...
+%     all(ColorDotUncoded>=0)  && all(ColorDotUncoded<=1) 
+% 
+% else
+%      errordlg('ColorDotUncoded设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% 
+% if (isscalar(ColorDotCoded) || numel(ColorDotCoded) == 3) && isnumeric(ColorDotCoded) && ...
+%     all(ColorDotCoded>=0)  && all(ColorDotCoded<=1)
+% 
+% else
+%      errordlg('ColorDotCoded设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% if (isscalar(ColorLine) || numel(ColorLine) == 3) && isnumeric(ColorLine) && ...
+%     all(ColorLine>=0)  && all(ColorLine<=1) 
+% 
+% else
+%      errordlg('ColorLine设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% if isscalar(WidthLine) &&  isnumeric(WidthLine) && WidthLine>0  && WidthLine<=WidthLine && fix(WidthLine) == WidthLine
+% 
+% else
+%     errordlg('WidthLine设置有误','参数设置错误'); 
+%     return;
+%     
+% end
+% 
+% 
+% if isscalar(NumDotLimit)  && isnumeric(NumDotLimit) &&  fix(NumDotLimit)==NumDotLimit && NumDotLimit <= NumSquare && NumDotLimit>0
+%     
+% else   
+%     
+%     errordlg('NumDotLimit设置有误','参数设置错误');
+%     return;
+%     
+% end
+% 
+% 
+% if isscalar(SizeFont) && isnumeric(SizeFont) && SizeFont>0 && fix(SizeFont) ==SizeFont
+% 
+% else
+%     errordlg('SizeFont设置有误','参数设置错误');
+%     return;
+%     
+% end
+% 
+% if (isscalar(ColorFont) || numel(ColorFont) == 3) && isnumeric(ColorFont) && ...
+%     all(ColorFont>=0)  && all(ColorFont<=1) 
+% 
+% else
+%      errordlg('ColorFont设置有误','参数设置错误');
+%      return;
+%    
+% end
+% 
+% 
+% %音频参数验证
+% 
+% if isscalar(AudioVolume) && isnumeric(AudioVolume)&& AudioVolume>=0 && AudioVolume<=1
+%     
+% else
+%       errordlg('AudioVolume设置有误','参数设置错误');
+%       return;
+% end
+% 
+% if ismatrix(MatrixFreq) && isnumeric(MatrixFreq) && numel(MatrixFreq)== NumSquare && all(MatrixFreq(:)>0)
+%     
+% else
+%       errordlg('MatrixFreq设置有误','参数设置错误');
+%       return;
+% 
+% end
+% 
+% if ismatrix(MatrixLeftAmp) && isnumeric(MatrixLeftAmp) && numel(MatrixLeftAmp)== NumSquare && all(MatrixLeftAmp(:)>=0)  && all(MatrixLeftAmp(:) <=1)
+%     
+% else
+%       errordlg('MatrixLeftAmp设置有误','参数设置错误');
+%       return;
+% 
+% end
+% 
+% if ismatrix(MatrixRightAmp) && isnumeric(MatrixRightAmp) && numel(MatrixRightAmp)== NumSquare && all(MatrixRightAmp(:)>=0)  && all(MatrixRightAmp(:) <=1)
+%     
+% else
+%       errordlg('MatrixRightAmp设置有误','参数设置错误');
+%       return;
+% 
+% end
+% 
+% 
+% if isscalar(SampleRateAudio) && isnumeric(SampleRateAudio) && SampleRateAudio>0
+% 
+% else
+%     errordlg('SampleRateAudio设置有误','参数设置错误');
+%     return;
+% end
 
 
 
