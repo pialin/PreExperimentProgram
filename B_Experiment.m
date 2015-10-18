@@ -54,8 +54,8 @@ PsychDefaultSetup(2);
 %键盘响应设置
 %Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
 ListenChar(2);
-%限制KbCheck响应的按键范围（只有Esc键可以触发KbCheck）
-RestrictKeysForKbCheck(KbName('ESCAPE'));
+%限制KbCheck响应的按键范围（只有Esc键和小键盘1-9可以触发KbCheck）
+RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('1'):KbName('9')]);
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
@@ -287,6 +287,8 @@ try
     %%
     %初始化SequenceCodedDot用于记录随机选取的编码点，每一列为一个Trial
     SequenceCodedDot = zeros(NumCodedDot,NumTrial);
+    %初始化SubjectAnswer用于记录受试反馈的答案
+    SubjectAnswer = zeros(NumCodedDot,NumTrial);
     
     %编码阶段
     %重复次数由ParameterSetting中的NumTrial决定
@@ -453,43 +455,44 @@ try
 
         
         %%
-        %静音休息阶段（Trial之间的休息时间）
-        for frame = 1:round(TimeBreak*FramePerSecond)
+        %静音记录阶段（Trial之间的休息时间）
+        
+        DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
+        vbl = Screen('Flip', PointerWindow);
+        
+        %    %每次打完标记后需要重新将并口置零
+        %    lptwrite(LPTAddress,0);
+        
+        dot=0;
+        
+        while dot<NumCodedDot
             
-            if frame ==2 
-
-%                 %每次打完标记后需要重新将并口置零
-%                 lptwrite(LPTAddress,0);
+            %等待按键按下
+            [~,KeyCode,~] = KbWait([],0);
             
-            end
-            
-            if trial ~= NumTrial
-                DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
+            if  any(KeyCode(KbName('1'):KbName('9')))
                 
-            else
+                dot = dot + 1 ;
                 
-                DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
                 
-            end
-            
-            Screen('DrawingFinished', PointerWindow);
-            
-            %读取键盘输入，若Esc键被按下则立刻退出程序
-            [IsKeyDown,~,KeyCode] = KbCheck;
-            if IsKeyDown && KeyCode(KbName('ESCAPE'))
-%                 %并口标记253表示实验因为ESC键被按下而中止
-%                 lptwrite(LPTAddress,253);
-%                 %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-%                 WaitSecs(0.01);
-%                 %每次打完标记后需要重新将并口置零
-%                 lptwrite(LPTAddress,0);
-%                 WaitSecs(0.01);
+                SubjectAnswer(dot,trial) = find([KeyCode(KbName('7'):KbName('9')),KeyCode(KbName('4'):KbName('6')),KeyCode(KbName('1'):KbName('3'))]~=0);
+                
+                
+            elseif  KeyCode(KbName('ESCAPE'))
+                
+                %                  %并口标记：实验被中途按下ESC键中止
+                %                 lptwrite(LPTAddress,253);
+                %                 WaitSecs(0.01);
+                %                 %每次打完标记后需要重新将并口置零
+                %                 lptwrite(LPTAddress,0);
+                %                 WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
                 Priority(0);
                 %关闭所有窗口对象
                 sca;
+                
                 %恢复键盘设定
                 %恢复Matlab命令行窗口对键盘输入的响应
                 ListenChar(0);
@@ -497,14 +500,14 @@ try
                 RestrictKeysForKbCheck([]);
                 %终止程序
                 return;
+                
             end
             
-            
-            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            %等待按键松开
+            KbWait([],1);
             
             
         end
-        
     end
     
     %%   
@@ -579,7 +582,7 @@ try
     %记录文件名
     RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
     %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
-    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodedDot');
+    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodedDot','SubjectAnswer');
     
 %如果程序执行出错则执行下面程序
 catch Error

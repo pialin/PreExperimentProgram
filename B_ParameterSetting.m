@@ -169,7 +169,7 @@ DataWhiteNoise = DataWhiteNoise/max(abs(DataWhiteNoise(:)));
 MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
 MessageCountdown = double('即将开始...');
 MessageWhiteNoise = double('现在播放的是白噪声...'); 
-MessageSilence = double('稍后进入下一组实验...'); 
+MessageSilence = double('请用小键盘记录你听到的图案...'); 
 MessageFinish = double('实验结束：)');
 
 %%
