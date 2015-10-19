@@ -25,11 +25,8 @@ TimeWait = 3;
 %‘实验结束’显示时长（单位：秒）
 TimeShowFinish = 1;
 
-%音量设置
-AudioVolume = 0.8 ;
 
-%音频采样率
-SampleRateAudio = 48000;
+
 
 %提示信息
 MessagePrepare = double('准备实验...');
@@ -69,8 +66,11 @@ MatrixRightAmp = [ 0.2 0.5 0.8
 MatrixLeftAmp =MatrixLeftAmp';
 MatrixRightAmp = MatrixRightAmp';
 
-%音频采样率（默认为48Hz,单位：Hz）
+%音频采样率（默认为48KHz,单位：Hz）
 SampleRateAudio = 48000;
+
+%提示音音量设置
+AudioVolume = 0.8;
 
 %音频数据生成部分
 %检查编码声音数据是否存在

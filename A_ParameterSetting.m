@@ -109,7 +109,6 @@ AudioVolume = 0.5;
 
 %ÃÀ¶û¿Ì¶È
 SequenceMel = [900 1000 1100  600  700  800 300  400  500];
- 
 
 MatrixFreq = reshape (700*(10.^(SequenceMel/2595)-1),3,3);
             
