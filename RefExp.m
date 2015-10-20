@@ -35,7 +35,7 @@ LastSubjectName = SubjectName{1};
 
 save LastSubjectName.mat LastSubjectName;
 
-
+DateString = datestr(now,'yyyymmdd_HH-MM-SS');
 
 %%
 %随机数生成器状态设置
@@ -171,15 +171,15 @@ try
     %开始
 
     %等待阶段
-%         %并口标记251表示实验开始
-%         lptwrite(LPTAddress,251);
+        %并口标记251表示实验开始
+        lptwrite(LPTAddress,251);
 
     
     for frame =1:round((TimePrepare)*FramePerSecond)
         
         if frame == 2
-%             %每次打完标记后需要重新将并口置零
-%             lptwrite(LPTAddress,0);
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
         
         end
         %绘制提示语
@@ -191,11 +191,11 @@ try
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
             
-%             %输出并口标记253表示实验被人为按下Esc键所中止
-%             lptwrite(LPTAddress,253);
-%             WaitSecs(0.01);
-%             lptwrite(LPTAddress,0);
-%             WaitSecs(0.01);
+            %输出并口标记253表示实验被人为按下Esc键所中止
+            lptwrite(LPTAddress,253);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
              
             %关闭PortAudio对象
             PsychPortAudio('Close');
@@ -208,8 +208,8 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+            %往并口输出0
+            lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -225,16 +225,16 @@ try
     %开始播放声音
     
         %等待阶段
-%         %并口标记1表示实验开始播放声音
-%         lptwrite(LPTAddress,1);
+        %并口标记1表示实验开始播放声音
+        lptwrite(LPTAddress,1);
     PsychPortAudio('Start', HandlePortAudio, AudioRepetition , AudioStartTime, WaitUntilDeviceStart);
     
     
     for frame =1: ceil(NumDot*(TimeCodedSound+TimeGapSilence)*FramePerSecond)
         
         if frame == 2
-%             %每次打完标记后需要重新将并口置零
-%             lptwrite(LPTAddress,0);
+            %每次打完标记后需要重新将并口置零
+            lptwrite(LPTAddress,0);
         
         end
         
@@ -247,11 +247,11 @@ try
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
             
-%             %输出并口标记253表示实验被人为按下Esc键所中止
-%             lptwrite(LPTAddress,253);
-%             WaitSecs(0.01);
-%             lptwrite(LPTAddress,0);
-%             WaitSecs(0.01);
+            %输出并口标记253表示实验被人为按下Esc键所中止
+            lptwrite(LPTAddress,253);
+            WaitSecs(0.01);
+            lptwrite(LPTAddress,0);
+            WaitSecs(0.01);
              
             %关闭PortAudio对象
             PsychPortAudio('Close');
@@ -264,8 +264,8 @@ try
             ListenChar(0);
             %恢复KbCheck函数对所有键盘输入的响应
             RestrictKeysForKbCheck([]);
-%             %往并口输出0
-%             lptwrite(LPTAddress,0);
+            %往并口输出0
+            lptwrite(LPTAddress,0);
             %终止程序
             return;
         end
@@ -275,6 +275,8 @@ try
 
     end
     
+    %并口标记254表示实验正常结束
+    lptwrite(LPTAddress,254);
     
      %绘制提示语
      DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
@@ -296,8 +298,8 @@ try
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
     
-    %     %往并口输出0
-%     lptwrite(LPTAddress,0);
+        %往并口输出0
+    lptwrite(LPTAddress,0);
 
    %%
     %存储记录文件
@@ -307,7 +309,7 @@ try
         mkdir(RecordPath);
     end
     %记录文件名
-    RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
+    RecordFile = [RecordPath,filesep,DateString,'.mat'];
     %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
     save(RecordFile,'DotSequence');
     
@@ -327,8 +329,8 @@ catch Error
     ListenChar(0);
     %恢复KbCheck函数对所有键盘输入的响应
     RestrictKeysForKbCheck([]);
-%     %往并口输出0
-%     lptwrite(LPTAddress,0);
+    %往并口输出0
+    lptwrite(LPTAddress,0);
     
     
     %在命令行输出前面的错误提示信息
