@@ -306,13 +306,13 @@ try
     %图案探索开始
     
     %随机选取NumTrial个图案（可能会出现重复）
-    IndexPattern1 = randi([ 1, 4],1,NumTrial/4);
-    IndexPattern2 = randi([ 5,12],1,NumTrial/4);
-    IndexPattern3 = randi([13,16],1,NumTrial/4);
-    IndexPattern4 = randi([17,20],1,NumTrial/4);
-    
-    IndexPattern=shuffle([IndexPattern1,IndexPattern2,IndexPattern3,IndexPattern4]);
-    
+%     IndexPattern1 = randi([ 1, 4],1,NumTrial/4);
+%     IndexPattern2 = randi([ 5,12],1,NumTrial/4);
+%     IndexPattern3 = randi([13,16],1,NumTrial/4);
+%     IndexPattern4 = randi([17,20],1,NumTrial/4);
+%     
+%     IndexPattern=shuffle([IndexPattern1,IndexPattern2,IndexPattern3,IndexPattern4]);
+    IndexPattern = 1:20;
     
     
     %PosCursor为用于记录光标移动的轨迹的行向量，每一列代表每次移动后光标的位置（用1-81表示整个9*9区域的每个位置）
