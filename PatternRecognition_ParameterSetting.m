@@ -133,6 +133,36 @@ SequencePatternDot=...
 %音频音量设置
 AudioVolume = 0.5;
 
+
+%修改工作路径至当前M文件所在目录
+Path = mfilename('fullpath');
+PosFileSep = strfind(Path,filesep);
+cd(Path(1:PosFileSep(end)));
+
+
+%加载提示音数据
+if exist('.\DataAudio\DataHintAudio.mat','file')
+    load .\DataAudio\DataHintAudio.mat;
+else
+    AudioDataHit = audioread('.\DataAudio\Hit.wav')';
+    AudioDataHit = mapminmax(AudioDataHit);
+    
+    AudioDataOut = audioread('.\DataAudio\Out.wav')';
+    AudioDataOut = mapminmax(AudioDataOut);
+    
+    AudioDataRoll = audioread('.\DataAudio\Roll.wav')';
+    AudioDataRoll = mapminmax(AudioDataRoll(1:8000))*0.6;
+    
+    
+    AudioDataPass = audioread('.\DataAudio\Pass.wav')';
+    AudioDataPass = maxminmax(AudioDataPass);
+    
+    AudioDataFinish = audioread('.\DataAudio\Finish.wav')';
+    AudioDataFinish = maxminmax(AudioDataFinish);
+
+    save .\DataAudio\DataHintAudio.mat  AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
+end
+
 %美尔刻度
 SequenceMel = [900 1000 1100  600  700  800 300  400  500];
 
@@ -150,71 +180,42 @@ MatrixRightAmp = [ 0.2 0.5 0.8
 MatrixLeftAmp =MatrixLeftAmp';
 MatrixRightAmp = MatrixRightAmp';
 
-%音频采样率（默认为48KHz,单位：Hz）
+%音频采样率（默认为48Hz,单位：Hz）
 SampleRateAudio = 48000;
 
-%修改工作路径至当前M文件所在目录
-Path = mfilename('fullpath');
-PosFileSep = strfind(Path,filesep);
-cd(Path(1:PosFileSep(end)));
-
-
 %音频数据生成部分
-%检查编码声音数据是否存在
-if exist('.\CodeSound\DataPureTone.mat','file')
+%检查声音数据是否存在
+if exist('.\DataAudio\AudioGeneartion.mat','file')
     %若存在，则读取数据
-    load .\CodeSound\DataPureTone.mat;
+    load .\DataAudio\AudioGeneartion.mat;
     %并将频率、采样率、编码时长、左右耳强度与数据文件进行对比，若一致，则无需重新生成数据文件
-    if  isequal(MatrixFreq,MatrixFreq_mat)  &&...
-            SampleRateAudio==SampleRateAudio_mat &&...
-            TimeCodedSound == TimeCodedSound_mat &&...
-            isequal(MatrixLeftAmp,MatrixLeftAmp_mat) &&...
-            isequal(MatrixRightAmp,MatrixRightAmp_mat)
+    if  isequal(MatrixFreq,MatrixFreq_last)  &&...
+            SampleRateAudio == SampleRateAudio_last &&...
+            TimeCodedSound == TimeCodedSound_last &&...
+            TimeWhiteNosie == TimeWhiteNoise_last &&...
+            isequal(MatrixLeftAmp,MatrixLeftAmp_last) &&...
+            isequal(MatrixRightAmp,MatrixRightAmp_last) 
         
-        clear MatrixFreq_mat SampleRateAudio_mat TimeCodedSound_mat MatrixLeftAmp_mat MatrixRightAmp_mat;
+        clear MatrixFreq_last SampleRateAudio_last TimeCodedSound_last TimeWhiteNoise_last MatrixLeftAmp_last MatrixRightAmp_last;
     %若不一致则重新生成数据文件，并读取该文件
     else
         
-        AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+        AudioGeneration(TimeCodedSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
         
-        load .\CodeSound\DataPureTone.mat DataPureTone;
-        disp('DataPureTone已经更新!')
+        load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
+        disp('音频数据已更新!')
         
     end
 %若数据文件不存在，则直接生成数据文件，并读取该文件
 else
     
-    AudioGeneration(TimeCodedSound,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+    AudioGeneration(TimeCodedSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
     
-    load .\CodeSound\DataPureTone.mat DataPureTone;
+    load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
     
-    disp('生成DataPureTone!')
-    
+    disp('生成音频数据!')
+     
 end
-
-%加载提示音数据
-if exist('.\HintSound\DataHintAudio.mat','file')
-    load .\HintSound\DataHintAudio.mat;
-else
-    AudioDataHit = audioread('.\HintSound\Hit.wav')';
-    AudioDataHit = AudioDataHit/max(abs(AudioDataHit(:)));
-    
-    AudioDataOut = audioread('.\HintSound\Out.wav')';
-    AudioDataOut = AudioDataOut/max(abs(AudioDataOut(:)));
-    
-    AudioDataRoll = audioread('.\HintSound\Roll.wav')';
-    AudioDataRoll = AudioDataRoll/max(abs(AudioDataRoll(:)));
-    AudioDataRoll = AudioDataRoll(1:7000)*0.6;
-    
-    AudioDataPass = audioread('.\HintSound\Pass.wav')';
-    AudioDataPass = AudioDataPass/max(abs(AudioDataPass(:)));
-    
-    AudioDataFinish = audioread('.\HintSound\Finish.wav')';
-    AudioDataFinish = AudioDataFinish/max(abs(AudioDataFinish(:)));
-
-    save .\HintSound\DataHintAudio.mat SampleRateAudio AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
-end
-
 
 
 %%

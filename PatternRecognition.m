@@ -34,6 +34,8 @@ LastSubjectName = SubjectName{1};
 
 save LastSubjectName.mat LastSubjectName;
 
+datestr(now,'yyyymmdd_HH-MM-SS');
+
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -620,7 +622,7 @@ try
         mkdir(RecordPath);
     end
     %记录文件名
-    RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
+    RecordFile = [RecordPath,filesep,DateString,'.mat'];
     %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
     save(RecordFile,'NumTrial','IndexPattern','PosCursor','SequencePatternDot');
     

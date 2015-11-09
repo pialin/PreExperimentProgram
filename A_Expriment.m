@@ -36,7 +36,7 @@ LastSubjectName = SubjectName{1};
 save LastSubjectName.mat LastSubjectName;
 
 
-
+DateString = datestr(now,'yyyymmdd_HH-MM-SS');
 %%
 %随机数生成器状态设置
 rng('shuffle');%Matlab R2012之后版本
@@ -160,10 +160,7 @@ try
     
     %播放音量设置
     PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
-    
-    %新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
-    HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
-    
+  
     %优先级设置
     Priority(LevelTopPriority);
     %进行第一次帧刷新获取基准时间
@@ -173,12 +170,12 @@ try
     
 %         %并口标记251表示实验开始
 %         lptwrite(LPTAddress,251);
-%         %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+%         %将并口状态保持一段时间（时长不低于NeuroScan的采样时间间隔）
 
     
     %等待阶段
     %时长为准备时长减去倒计时时长
-    for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
+    for frame =1:round(TimePrepare*FramePerSecond)
         if frame ==2
 %         %每次打完标记后需要重新将并口置零
 %         lptwrite(LPTAddress,0);       
@@ -218,121 +215,62 @@ try
         
     end
     
-    %%
-
-    %倒计时阶段
     
-    %倒计时提示音
-    AudioDataLeft = reshape(DataPureTone(1,5,1:round(SampleRateAudio)),1,[]);
-    AudioDataRight = reshape(DataPureTone(2,5,1:round(SampleRateAudio)),1,[]);
-    
-    %归一化
-    
-    MaxAmp = max([MatrixLeftAmp(5), MatrixRightAmp(5)]);
-    
-    AudioDataLeft =  AudioDataLeft/MaxAmp;
-    AudioDataRight =  AudioDataRight/MaxAmp;
-    
-    PsychPortAudio('Stop', HandlePortAudio);
-    
-    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,0.7*SampleRateAudio),AudioDataLeft;zeros(1,0.7*SampleRateAudio),AudioDataRight]);
+    %初始白噪声
+    PsychPortAudio('Stop',HandlePortAudio);
+    %将声音数据填入音频播放的Buffer里
+    PsychPortAudio('FillBuffer', HandlePortAudio,repmat(DataWhiteNoise,2,1));
+    %播放
+    PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
     
     
-    %播放声音
-    PsychPortAudio('Start', HandlePortAudio, AudioCompetition, AudioStartTime, WaitUntilDeviceStart);
     
-    
-    for frame =1:round(TimeCountdown*FramePerSecond)
-        
-        
-        DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
-        Screen('DrawingFinished', PointerWindow);
-        
-        %读取键盘输入，若Esc键被按下则立刻退出程序
-        [IsKeyDown,~,KeyCode] = KbCheck;
-        if IsKeyDown && KeyCode(KbName('ESCAPE'))
-            
-%             %并口标记：实验被中途按下ESC键中止
-%             lptwrite(LPTAddress,253);
-%             WaitSecs(0.01);
-%             %每次打完标记后需要重新将并口置零
-%             lptwrite(LPTAddress,0);
-%             WaitSecs(0.01);
-            %关闭PortAudio对象
-            PsychPortAudio('Close');
-            %恢复显示优先级
-            Priority(0);
-            %关闭所有窗口对象
-            sca;
-            
-            %恢复键盘设定
-            %恢复Matlab命令行窗口对键盘输入的响应
-            ListenChar(0);
-            %恢复KbCheck函数对所有键盘输入的响应
-            RestrictKeysForKbCheck([]);
-            %终止程序
-            return;
-        end
-        
-        
-        vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
-        
-    end
-
-    
-    PsychPortAudio('Stop', HandlePortAudio);
     
 
     %%
-    %初始化SequenceCodedDot用于记录随机选取的编码点，每一列为一个Trial
-    SequenceCodedDot = zeros(NumCodedDot,NumTrial);
-    %初始化SubjectAnswer用于记录受试反馈的答案
-    SubjectAnswer = zeros(NumCodedDot,NumTrial);
+    %初始化SequenceCodeDot用于记录随机选取的编码点，每一列为一个Trial
+    SequenceCodeDot = zeros(NumCodedDot,NumTrial);
   
     
     %编码阶段
     %重复次数由ParameterSetting中的NumTrial决定
     for trial =1:NumTrial
         
-       %随机获取进行声音编码的点
-        SequenceCodedDot(:,trial) = randperm(NumSquare,NumCodedDot)';   
+        
+        %随机获取进行声音编码的点
+        SequenceCodeDot(:,trial) = randperm(NumSquare,NumCodedDot)';  
+        %求编码声音的最大幅值（用于归一）
+        MaxAmp = max([MatrixLeftAmp(SequenceCodeDot(:,trial))', MatrixRightAmp(SequenceCodeDot(:,trial))']);
         
         %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-        AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-        AudioDataLeft = reshape(AudioDataLeft',1,[]);
+        AudioDataLeft = [ 
+            zeros(1,SampleRateAudio),...
+            reshape(DataPureTone(1,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
+            zeros(1,SampleRateAudio*2),...
+            repmat([reshape(DataPureTone(1,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodedDot,[]),zeros(1,SampleRateAudio*TimeGapSilence)]/MaxAmp,1,AudioRepetition),...
+            DataWhiteNoise,...
+            ];
+        AudioDataRight = [ 
+            zeros(1,SampleRateAudio),...
+            reshape(DataPureTone(2,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
+            zeros(1,SampleRateAudio*2),...
+            repmat([reshape(DataPureTone(2,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodedDot,[]),zeros(1,SampleRateAudio*TimeGapSilence)]/MaxAmp,1,AudioRepetition ),...
+            DataWhiteNoise,...
+            ];
         
         
-        AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-        AudioDataRight = reshape(AudioDataRight',1,[]);
+
+        PsychPortAudio('Stop',HandlePortAudio);
+        %将声音数据填入音频播放的Buffer里
+        PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
         
-        %归一化
-        MaxAmp = max([MatrixLeftAmp(SequenceCodedDot(:,trial))', MatrixRightAmp(SequenceCodedDot(:,trial))']);
-        
-        AudioDataRight =  AudioDataRight/MaxAmp;
-        AudioDataLeft =  AudioDataLeft/MaxAmp;
-        
-        
-        
-        
-        %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-        PsychPortAudio('FillBuffer', HandlePortAudio,HandleNoiseBuffer);
-        
-        %播放白噪声
+        %播放
         PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
         
-%             %并口标记201表示开始播放白噪声
-%             lptwrite(LPTAddress,201);
-      
-        %%
-        %白噪声呈现阶段
-        %时长由ParameterSetting中的TimeWhiteNoise决定
-        for frame =1:round(TimeWhiteNoise*FramePerSecond)
-            
-            if frame == 2
-                
-%                 %每次打完标记后需要重新将并口置零
-%                 lptwrite(LPTAddress,0);
-            end
+        
+        %播放白噪声
+        %时长由TimeWhiteNoise决定
+        for frame =1:round((TimeWhiteNoise+1)*FramePerSecond)
             
             DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
             Screen('DrawingFinished', PointerWindow);
@@ -366,6 +304,87 @@ try
             
         end
         
+      
+       %%
+        %播放白噪声
+        %时长由TimeWhiteNoise决定
+        for frame =1:round((TimeWhiteNoise+1)*FramePerSecond)
+            
+            DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
+            Screen('DrawingFinished', PointerWindow);
+            
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+        
+%         %每次打完标记后需要重新将并口置零
+%         lptwrite(LPTAddress,0);
+
+        %播放参考音
+        for frame =1:round(3*FramePerSecond)
+            
+            DrawFormattedText(PointerWindow,MessageRefSound,'center', 'center', ColorFont);
+            Screen('DrawingFinished', PointerWindow);
+            
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+        
+
+
+
+        
+        
         %停止声音播放
         PsychPortAudio('Stop', HandlePortAudio);
         
@@ -382,7 +401,7 @@ try
         %编码声音呈现阶段
         for dot = 1:NumCodedDot
             
-            for frame=1:round(TimeCodedSound*FramePerSecond)
+            for frame=1:round(TimeCodeSound*FramePerSecond)
                 if dot ==1 && frame == 2
                     
 %                     %每次打完标记后需要重新将并口置零
@@ -391,12 +410,12 @@ try
                 end
                 %绘制方块和圆点
                 Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-                Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot(1:dot,trial)),ceil(SizeDot));
+                Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodeDot(1:dot,trial)),ceil(SizeDot));
                 
                 if dot > 1
-                    XLine = reshape(repmat(XSquareCenter((SequenceCodedDot(1:dot,trial))),2,1),1,[]);
+                    XLine = reshape(repmat(XSquareCenter((SequenceCodeDot(1:dot,trial))),2,1),1,[]);
                     
-                    YLine = reshape(repmat(YSquareCenter((SequenceCodedDot(1:dot,trial))),2,1),1,[]);
+                    YLine = reshape(repmat(YSquareCenter((SequenceCodeDot(1:dot,trial))),2,1),1,[]);
                     
                     
                     if dot ~= NumCodedDot
@@ -443,11 +462,11 @@ try
             end
         end
         
-        for frame=1:round((AudioRepetition*TimeGapSilence+(AudioRepetition-1)*TimeCodedSound*NumCodedDot)*FramePerSecond)
+        for frame=1:round((AudioRepetition*TimeGapSilence+(AudioRepetition-1)*TimeCodeSound*NumCodedDot)*FramePerSecond)
             
             %绘制方块和圆点
             Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot(:,trial)),ceil(SizeDot));
+            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodeDot(:,trial)),ceil(SizeDot));
             if NumCodedDot > 1
             Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
             end
@@ -611,9 +630,9 @@ try
         mkdir(RecordPath);
     end
     %记录文件名
-    RecordFile = [RecordPath,filesep,datestr(now,'yyyymmdd_HH-MM-SS'),'.mat'];
-    %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
-    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodedDot','SubjectAnswer');
+    RecordFile = [RecordPath,filesep,DateString,'.mat'];
+    %存储的变量包括NumCodedDot,NumTrial,SequenceCodeDot
+    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodeDot','SubjectAnswer');
 
   
     
