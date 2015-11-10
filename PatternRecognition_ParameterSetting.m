@@ -24,10 +24,12 @@ TimeCountdown = 5.2;
 TimeMessageFinish =1;
 
 %编码声音呈现时长
-TimeCodedSound = 1;
+TimeCodeSound = 1;
 
 %声音间隔时间（即两次编码声音之间的无声时长，单位：秒）
 TimeGapSilence = 1;
+
+TimeWhiteNoise = 2;
 
 
 %%
@@ -153,21 +155,68 @@ cd(Path(1:PosFileSep(end)));
 if exist('.\DataAudio\DataHintAudio.mat','file')
     load .\DataAudio\DataHintAudio.mat;
 else
+ 
+    
     AudioDataHit = audioread('.\DataAudio\Hit.wav')';
-    AudioDataHit = mapminmax(AudioDataHit);
+    TimeHit = length(AudioDataHit)/SampleRateAudio;
+    SmoothCosFreq = 1/(TimeHit*0.2) ;
+    
+    SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeHit*0.1,TimeHit*0.1,TimeHit*0.2*SampleRateAudio))+1);
+    SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+        ones(1,length(AudioDataHit)-numel(SmoothSequence)),...
+        SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+    
+    AudioDataHit = mapminmax(AudioDataHit.*SmoothSequence);
     
     AudioDataOut = audioread('.\DataAudio\Out.wav')';
-    AudioDataOut = mapminmax(AudioDataOut);
+    
+    TimeOut = length(AudioDataOut)/SampleRateAudio;
+    SmoothCosFreq = 1/(TimeOut*0.2) ;
+    
+    SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeOut*0.1,TimeOut*0.1,TimeOut*0.2*SampleRateAudio))+1);
+    SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+        ones(1,length(AudioDataOut)-numel(SmoothSequence)),...
+        SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+    
+    AudioDataOut = mapminmax(AudioDataOut.*SmoothSequence);
     
     AudioDataRoll = audioread('.\DataAudio\Roll.wav')';
-    AudioDataRoll = mapminmax(AudioDataRoll(1:8000))*0.6;
+    AudioDataRoll = AudioDataRoll(1:8000);
+    TimeRoll = length(AudioDataRoll)/SampleRateAudio;
+    SmoothCosFreq = 1/(TimeRoll*0.2) ;
+    
+    SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeRoll*0.1,TimeRoll*0.1,TimeRoll*0.2*SampleRateAudio))+1);
+    SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+        ones(1,length(AudioDataRoll)-numel(SmoothSequence)),...
+        SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+    
+    AudioDataRoll = mapminmax(AudioDataRoll.*SmoothSequence)*0.6;
     
     
     AudioDataPass = audioread('.\DataAudio\Pass.wav')';
-    AudioDataPass = maxminmax(AudioDataPass);
+    
+    TimePass = length(AudioDataPass)/SampleRateAudio;
+    SmoothCosFreq = 1/(TimePass*0.2) ;
+    
+    SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimePass*0.1,TimePass*0.1,TimePass*0.2*SampleRateAudio))+1);
+    SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+        ones(1,length(AudioDataPass)-numel(SmoothSequence)),...
+        SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+    
+    AudioDataPass = mapminmax(AudioDataPass.*SmoothSequence);
     
     AudioDataFinish = audioread('.\DataAudio\Finish.wav')';
-    AudioDataFinish = maxminmax(AudioDataFinish);
+    
+     TimeFinish = length(AudioDataFinish)/SampleRateAudio;
+    SmoothCosFreq = 1/(TimeFinish*0.2) ;
+    
+    SmoothSequence = 0.5*(cos(2*pi*SmoothCosFreq*linspace(-1*TimeFinish*0.1,TimeFinish*0.1,TimeFinish*0.2*SampleRateAudio))+1);
+    SmoothSequence = [SmoothSequence(1:round(numel(SmoothSequence)/2)),...
+        ones(1,length(AudioDataFinish)-numel(SmoothSequence)),...
+        SmoothSequence(round(numel(SmoothSequence)/2+1):end)];
+    
+    AudioDataFinish = mapminmax(AudioDataFinish.*SmoothSequence);
+    
 
     save .\DataAudio\DataHintAudio.mat  AudioDataHit AudioDataOut AudioDataRoll AudioDataPass AudioDataFinish;
 end
@@ -194,33 +243,33 @@ SampleRateAudio = 48000;
 
 %音频数据生成部分
 %检查声音数据是否存在
-if exist('.\DataAudio\AudioGeneartion.mat','file')
+if exist('.\DataAudio\AudioGeneration.mat','file')
     %若存在，则读取数据
-    load .\DataAudio\AudioGeneartion.mat;
+    load .\DataAudio\AudioGeneration.mat;
     %并将频率、采样率、编码时长、左右耳强度与数据文件进行对比，若一致，则无需重新生成数据文件
     if  isequal(MatrixFreq,MatrixFreq_last)  &&...
             SampleRateAudio == SampleRateAudio_last &&...
-            TimeCodedSound == TimeCodedSound_last &&...
-            TimeWhiteNosie == TimeWhiteNoise_last &&...
+            TimeCodeSound == TimeCodeSound_last &&...
+            TimeWhiteNoise == TimeWhiteNoise_last &&...
             isequal(MatrixLeftAmp,MatrixLeftAmp_last) &&...
             isequal(MatrixRightAmp,MatrixRightAmp_last) 
         
-        clear MatrixFreq_last SampleRateAudio_last TimeCodedSound_last TimeWhiteNoise_last MatrixLeftAmp_last MatrixRightAmp_last;
+        clear MatrixFreq_last SampleRateAudio_last TimeCodeSound_last TimeWhiteNoise_last MatrixLeftAmp_last MatrixRightAmp_last;
     %若不一致则重新生成数据文件，并读取该文件
     else
         
-        AudioGeneration(TimeCodedSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+        AudioGeneration(TimeCodeSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
         
-        load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
+        load .\DataAudio\AudioGeneration.mat DataPureTone;
         disp('音频数据已更新!')
         
     end
 %若数据文件不存在，则直接生成数据文件，并读取该文件
 else
     
-    AudioGeneration(TimeCodedSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
+    AudioGeneration(TimeCodeSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
     
-    load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
+    load .\DataAudio\AudioGeneration.mat DataPureTone;
     
     disp('生成音频数据!')
      

@@ -58,7 +58,7 @@ PsychDefaultSetup(2);
 %Matlab命令行窗口停止响应键盘字符输入（按Crtl-C可以取消这一状态）
 ListenChar(2);
 %限制KbCheck响应的按键范围（只有Esc键和小键盘1-9可以触发KbCheck）
-RestrictKeysForKbCheck([KbName('ESCAPE'),KbName('1'):KbName('9')]);
+RestrictKeysForKbCheck(KbName('ESCAPE'));
 
 %获取所有显示器的序号
 AllScreen = Screen('Screens');
@@ -159,33 +159,26 @@ try
     %播放音量设置
     PsychPortAudio('Volume', HandlePortAudio, AudioVolume);
     
-    %新建一个Buffer存放白噪声数据，HandleNoiseBuffer为此Buffer的指针
-    HandleNoiseBuffer =  PsychPortAudio('CreateBuffer',HandlePortAudio,DataWhiteNoise);
-    
+
     %优先级设置
     Priority(LevelTopPriority);
     %进行第一次帧刷新获取基准时间
     vbl = Screen('Flip', PointerWindow);
     
     %%
-        %并口标记251表示实验开始
-        lptwrite(LPTAddress,251);
-
-    
-    
-    %等待阶段
-    %时长为准备时长减去倒计时时长
-    for frame =1:round((TimePrepare-TimeCountdown)*FramePerSecond)
-        
-        if frame ==2 
-            
-            %每次打完标记后需要重新将并口置零
-            lptwrite(LPTAddress,0);
  
+%         %并口标记251表示实验开始
+%         lptwrite(LPTAddress,251);
+ 
+    %等待阶段
+    for frame =1:round(TimePrepare*FramePerSecond)
+        if frame == 2
+%         %每次打完标记后需要重新将并口置零
+%         lptwrite(LPTAddress,0);       
         end
-        
+        SecRemain = ceil((TimePrepare*FramePerSecond-frame)/FramePerSecond);
         %绘制提示语
-        DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+        DrawFormattedText(PointerWindow,[double('实验 '),double(num2str(SecRemain)),double(' 秒后开始...')],'center', 'center', ColorFont);
         %提示程序所有内容已绘制完成
         Screen('DrawingFinished', PointerWindow);
         
@@ -193,13 +186,12 @@ try
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
             
-            %并口标记253表示实验因为ESC键被按下而中止
-            lptwrite(LPTAddress,253);
-            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-            WaitSecs(0.01);
-            %每次打完标记后需要重新将并口置零
-            lptwrite(LPTAddress,0);
-            WaitSecs(0.01);
+%             %并口标记：实验被中途按下ESC键中止
+%             lptwrite(LPTAddress,253);
+%             WaitSecs(0.01);
+%             %每次打完标记后需要重新将并口置零
+%             lptwrite(LPTAddress,0);
+%             WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
@@ -221,53 +213,38 @@ try
     end
     
     
-    
-   %%
-     %倒计时阶段
-    
-    %倒计时提示音
-    AudioDataLeft = reshape(DataPureTone(1,5,1:round(SampleRateAudio)),1,[]);
-    AudioDataRight = reshape(DataPureTone(2,5,1:round(SampleRateAudio)),1,[]);
-    
-    %归一化
-    
-    MaxAmp = max([MatrixLeftAmp(5), MatrixRightAmp(5)]);
-    
-    AudioDataLeft =  AudioDataLeft/MaxAmp;
-    AudioDataRight =  AudioDataRight/MaxAmp;
-    
-    PsychPortAudio('Stop', HandlePortAudio);
-    
-    PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,round(0.7*SampleRateAudio)),AudioDataLeft;zeros(1,round(0.7*SampleRateAudio)),AudioDataRight]);
+    %初始白噪声
+    PsychPortAudio('Stop',HandlePortAudio);
+    %将声音数据填入音频播放的Buffer里
+    PsychPortAudio('FillBuffer', HandlePortAudio,repmat(DataWhiteNoise,2,1));
+    %播放
+    PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
     
     
-    %播放声音
-    PsychPortAudio('Start', HandlePortAudio, AudioCompetition, AudioStartTime, WaitUntilDeviceStart);
     
-    
-    for frame =1:round(TimeCountdown*FramePerSecond)
+    for frame =1:ceil(TimeWhiteNoise*FramePerSecond)
         
-        
-        DrawFormattedText(PointerWindow,MessageCountdown,'center', 'center', ColorFont);
+        %绘制提示语
+        DrawFormattedText(PointerWindow,MessageWhiteNoise1,'center', 'center', ColorFont);
+        %提示程序所有内容已绘制完成
         Screen('DrawingFinished', PointerWindow);
         
         %读取键盘输入，若Esc键被按下则立刻退出程序
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
-            %并口标记253表示实验因为ESC键被按下而中止
-            lptwrite(LPTAddress,253);
-            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-            WaitSecs(0.01);
-            %每次打完标记后需要重新将并口置零
-            lptwrite(LPTAddress,0);
-            WaitSecs(0.01);
+            
+%             %并口标记：实验被中途按下ESC键中止
+%             lptwrite(LPTAddress,253);
+%             WaitSecs(0.01);
+%             %每次打完标记后需要重新将并口置零
+%             lptwrite(LPTAddress,0);
+%             WaitSecs(0.01);
             %关闭PortAudio对象
             PsychPortAudio('Close');
             %恢复显示优先级
             Priority(0);
             %关闭所有窗口对象
-            sca;
-            
+            sca;  
             %恢复键盘设定
             %恢复Matlab命令行窗口对键盘输入的响应
             ListenChar(0);
@@ -277,94 +254,83 @@ try
             return;
         end
         
-        
+        %帧刷新
         vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
         
     end
-
     
+
     PsychPortAudio('Stop', HandlePortAudio);
     
 
     
     %%
-    %初始化SequenceCodedDot用于记录随机选取的编码点，每一列为一个Trial
-    SequenceCodedDot = zeros(NumCodedDot,NumTrial);
-    %初始化SubjectAnswer用于记录受试反馈的答案
-    SubjectAnswer = zeros(NumCodedDot,NumTrial);
+    %初始化SequenceCodeDot用于记录随机选取的编码点，每一列为一个Trial
+    SequenceCodeDot = zeros(NumCodeDot,NumTrial);
+    AllDot = [1:4,6:9];
     
     %编码阶段
     %重复次数由ParameterSetting中的NumTrial决定
     for trial =1:NumTrial
         
         %随机获取进行声音编码的点
-        SequenceCodedDot(:,trial) = randperm(NumSquare,NumCodedDot);
+        SequenceCodeDot(:,trial) = AllDot(randperm(length(AllDot)-1,NumCodeDot)');
+
         
+
+        CodeSoundLeft = sum(reshape(DataPureTone(1,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodeDot,[]),1);
+        CodeSoundRight = sum(reshape(DataPureTone(2,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodeDot,[]),1);
+        
+        CodeSound = mapminmax([CodeSoundLeft,CodeSoundRight]);
+        
+  
         %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-        AudioDataLeft = reshape(DataPureTone(1,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-        %求和
-        AudioDataLeft = sum(AudioDataLeft,1);
+        AudioDataLeft = [ ...
+            zeros(1,SampleRateAudio),...
+            reshape(DataPureTone(1,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
+            zeros(1,SampleRateAudio*2),...
+            repmat([ CodeSound(1:end/2),zeros(1,SampleRateAudio*TimeGapSilence)],1,AudioRepetition),...
+            DataWhiteNoise,...
+            ];
+        AudioDataRight = [ ...
+            zeros(1,SampleRateAudio),...
+            reshape(DataPureTone(2,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
+            zeros(1,SampleRateAudio*2),...
+            repmat([ CodeSound(end/2+1:end),zeros(1,SampleRateAudio*TimeGapSilence)],1,AudioRepetition),...
+            DataWhiteNoise,...
+            ];
         
+        PsychPortAudio('Stop',HandlePortAudio);
+        %将声音数据填入音频播放的Buffer里
+        PsychPortAudio('FillBuffer', HandlePortAudio,[AudioDataLeft;AudioDataRight]);
         
-        
-        AudioDataRight = reshape(DataPureTone(2,SequenceCodedDot(:,trial),1:TimeCodedSound*SampleRateAudio),NumCodedDot,[]);
-        
-        AudioDataRight = sum(AudioDataRight,1);
-        
-        %归一化
-        AudioData = mapminmax([AudioDataLeft,AudioDataRight]);
-        
-        AudioDataLeft = AudioData(1:TimeCodedSound*SampleRateAudio);
-        AudioDataRight = AudioData(TimeCodedSound*SampleRateAudio+1:end);
-
-
-        PsychPortAudio('Stop', HandlePortAudio);
-        
-        %将之前保存在HandleNoiseBuffer里面的白噪声数据填入音频播放的Buffer里
-        PsychPortAudio('FillBuffer', HandlePortAudio,HandleNoiseBuffer);
-        
-        %播放白噪声
+        %播放
         PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
         
-            %并口标记201表示开始播放白噪声
-            lptwrite(LPTAddress,201);
-
+%         %并口标记：Trial开始
+%         lptwrite(LPTAddress,mod(trial-1,200)+1);
         
-        
-        
-        %%
-        %白噪声呈现阶段
-        %时长由ParameterSetting中的TimeWhiteNoise决定
-        for frame =1:round(TimeWhiteNoise*FramePerSecond)
+ 
+        %无声
+        for frame =1:round(1*FramePerSecond)
             
-            if frame == 2
-
-%                 %每次打完标记后需要重新将并口置零
-                lptwrite(LPTAddress,0);
-            
-            end
-            
-            DrawFormattedText(PointerWindow,MessageWhiteNoise,'center', 'center', ColorFont);
             Screen('DrawingFinished', PointerWindow);
             
-            
-            %读取键盘输入，若Esc键被按下则立刻退出程序
-            [IsKeyDown,~,KeyCode] = KbCheck;
             if IsKeyDown && KeyCode(KbName('ESCAPE'))
-                
-                %并口标记253表示实验因为ESC键被按下而中止
-                lptwrite(LPTAddress,253);
-                %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-                WaitSecs(0.01);
-                %每次打完标记后需要重新将并口置零
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
                 Priority(0);
                 %关闭所有窗口对象
                 sca;
+                
                 %恢复键盘设定
                 %恢复Matlab命令行窗口对键盘输入的响应
                 ListenChar(0);
@@ -379,39 +345,94 @@ try
             
         end
         
-        %停止声音播放
-        PsychPortAudio('Stop', HandlePortAudio);
-        
-        %把编码声音数据填充到PortAudio对象的Buffer中
-        PsychPortAudio('FillBuffer', HandlePortAudio,[zeros(1,round(TimeGapSilence*SampleRateAudio)),AudioDataLeft;
-                    zeros(1,round(TimeGapSilence*SampleRateAudio)),AudioDataRight]);
-        %播放编码声音
-        PsychPortAudio('Start', HandlePortAudio, AudioRepetition, AudioStartTime, WaitUntilDeviceStart);
-        
-%             %并口标记1-200表示开始播放编码声音，数字代表目前的trial数
-            lptwrite(LPTAddress,mod(trial-1,200)+1);
+%         %每次打完标记后需要重新将并口置零
+%         lptwrite(LPTAddress,0);
+              
 
-        
-        %%
-        %编码声音呈现阶段
-        for frame=1:round((TimeCodedSound+TimeGapSilence)*AudioRepetition*FramePerSecond)
+
+        %播放参考音
+        for frame =1:round(1*FramePerSecond)
             
-            if frame ==2
-
-                    %每次打完标记后需要重新将并口置零
-                    lptwrite(LPTAddress,0);
-
-
+            DrawFormattedText(PointerWindow,MessageRefSound,'center', 'center', ColorFont);
+            Screen('DrawingFinished', PointerWindow);
+            
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
             end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+        
+        
+        %无声
+        for frame =1:round(2*FramePerSecond)
+            Screen('DrawingFinished', PointerWindow);
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+
+
+       %%
+        %编码声音呈现阶段
+        
+        for frame=1:round((TimeCodeSound+TimeGapSilence)*AudioRepetition*FramePerSecond)
+            
             
             %绘制方块和圆点
             Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
-            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodedDot(:,trial)),SizeDot+1);
+            Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodeDot(:,trial)),SizeDot+1);
             %如果编码点数大于1，则需绘制相应的连线
-            if NumCodedDot > 1
-                XLine = reshape(repmat(XSquareCenter((SequenceCodedDot(:,trial))),2,1),1,[]);
+            if NumCodeDot > 1
+                XLine = reshape(repmat(XSquareCenter((SequenceCodeDot(:,trial))),2,1),1,[]);
                 
-                YLine = reshape(repmat(YSquareCenter((SequenceCodedDot(:,trial))),2,1),1,[]);
+                YLine = reshape(repmat(YSquareCenter((SequenceCodeDot(:,trial))),2,1),1,[]);
                 
                 
                 Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
@@ -424,13 +445,13 @@ try
             %读取键盘输入，若Esc键被按下则立刻退出程序
             [IsKeyDown,~,KeyCode] = KbCheck;
             if IsKeyDown && KeyCode(KbName('ESCAPE'))
-                %并口标记253表示实验因为ESC键被按下而中止
-                lptwrite(LPTAddress,253);
-                %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-                WaitSecs(0.01);
-                %每次打完标记后需要重新将并口置零
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
+%                 %并口标记253表示实验因为ESC键被按下而中止
+%                 lptwrite(LPTAddress,253);
+%                 %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
@@ -450,45 +471,23 @@ try
             vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
             
         end
-        
-        PsychPortAudio('Stop', HandlePortAudio);
-        
-            %并口标记1-200表示编码声音结束，数字代表目前的trial数
-            lptwrite(LPTAddress,mod(trial-1,200)+1);
+       
 
-        
-        %%
-        %静音记录阶段（Trial之间的休息时间）
-        
-        DrawFormattedText(PointerWindow,MessageSilence,'center', 'center', ColorFont);
-        vbl = Screen('Flip', PointerWindow);
-        
-           %每次打完标记后需要重新将并口置零
-           lptwrite(LPTAddress,0);
-        
-        dot=0;
-        
-        while dot<NumCodedDot
+  %%
+        %受试记录答案（Trial之间的休息时间）
+        for frame = 1:round(TimeWhiteNoise*FramePerSecond)
             
-            %等待按键按下
-            [~,KeyCode,~] = KbWait([],0);
+            DrawFormattedText(PointerWindow,MessageWhiteNoise2,'center', 'center', ColorFont);
+            Screen('DrawingFinished', PointerWindow);
             
-            if  any(KeyCode(KbName('1'):KbName('9')))
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
                 
-                dot = dot + 1 ;
-                
-                
-                SubjectAnswer(dot,trial) = find([KeyCode(KbName('7'):KbName('9')),KeyCode(KbName('4'):KbName('6')),KeyCode(KbName('1'):KbName('3'))]~=0);
-                
-                
-            elseif  KeyCode(KbName('ESCAPE'))
-                
-                %并口标记：实验被中途按下ESC键中止
-                lptwrite(LPTAddress,253);
-                WaitSecs(0.01);
-                %每次打完标记后需要重新将并口置零
-                lptwrite(LPTAddress,0);
-                WaitSecs(0.01);
                 %关闭PortAudio对象
                 PsychPortAudio('Close');
                 %恢复显示优先级
@@ -503,28 +502,60 @@ try
                 RestrictKeysForKbCheck([]);
                 %终止程序
                 return;
-                
             end
             
-            %等待按键松开
-            KbWait([],1);
             
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
             
         end
+        
+        
+        %无声
+        for frame =1:round(1*FramePerSecond)
+            Screen('DrawingFinished', PointerWindow);
+            if IsKeyDown && KeyCode(KbName('ESCAPE'))
+%                 %并口标记：实验被中途按下ESC键中止
+%                 lptwrite(LPTAddress,253);
+%                 WaitSecs(0.01);
+%                 %每次打完标记后需要重新将并口置零
+%                 lptwrite(LPTAddress,0);
+%                 WaitSecs(0.01);
+    
+                %关闭PortAudio对象
+                PsychPortAudio('Close');
+                %恢复显示优先级
+                Priority(0);
+                %关闭所有窗口对象
+                sca;
+                
+                %恢复键盘设定
+                %恢复Matlab命令行窗口对键盘输入的响应
+                ListenChar(0);
+                %恢复KbCheck函数对所有键盘输入的响应
+                RestrictKeysForKbCheck([]);
+                %终止程序
+                return;
+            end
+            
+            
+            vbl = Screen('Flip', PointerWindow, vbl + (FrameWait-0.5) * TimePerFlip);
+            
+        end
+        
     end
     
     %%   
-    %并口标记254表示实验正常结束
-    lptwrite(LPTAddress,254);
+%     %并口标记254表示实验正常结束
+%     lptwrite(LPTAddress,254);
 
     
     for frame = 1:round(TimeMessageFinish * FramePerSecond)
         
-        if frame ==2 
-
-            lptwrite(LPTAddress,0);
-       
-        end
+%         if frame ==2 
+% 
+%             lptwrite(LPTAddress,0);
+%        
+%         end
         
         DrawFormattedText(PointerWindow,MessageFinish,'center', 'center', ColorFont);
         Screen('DrawingFinished', PointerWindow);
@@ -533,12 +564,12 @@ try
         [IsKeyDown,~,KeyCode] = KbCheck;
         if IsKeyDown && KeyCode(KbName('ESCAPE'))
             
-            %并口标记253表示实验因为ESC键被按下而中止
-            lptwrite(LPTAddress,253);
-            %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
-            WaitSecs(0.01);
-            %每次打完标记后需要重新将并口置零
-            lptwrite(LPTAddress,0);
+%             %并口标记253表示实验因为ESC键被按下而中止
+%             lptwrite(LPTAddress,253);
+%             %将并口状态保持一段时间（时长不低于NeuralScan的采样时间间隔）
+%             WaitSecs(0.01);
+%             %每次打完标记后需要重新将并口置零
+%             lptwrite(LPTAddress,0);
             WaitSecs(0.01);
             
             %关闭PortAudio对象
@@ -578,14 +609,14 @@ try
     %%
     %存储记录文件
     %记录文件路径
-    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName{1},filesep,'B',num2str(NumCodedDot)];
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName{1},filesep,'B',num2str(NumCodeDot)];
     if ~exist(RecordPath,'dir')
         mkdir(RecordPath);
     end
     %记录文件名
     RecordFile = [RecordPath,filesep,DateString,'.mat'];
-    %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
-    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodedDot','SubjectAnswer');
+    %存储的变量包括NumCodeDot,NumTrial,SequenceCodeDot
+    save(RecordFile,'NumCodeDot','NumTrial','SequenceCodeDot');
     
 %如果程序执行出错则执行下面程序
 catch Error

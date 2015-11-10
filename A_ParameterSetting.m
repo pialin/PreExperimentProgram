@@ -7,11 +7,11 @@
 %%
 %基本参数设置
 %编码点数
-NumCodedDot = 2;
+NumCodeDot = 2;
 %音频重放次数
-AudioCompetition = 4;
+AudioCompetition = 3;
 
-%Trial数 （白噪->编码声音->无声 为一个Trail）
+%Trial数 （无声-参考音-无声-(编码声+无声)*AudioCompetition-白噪声（受试记录答案） 为一个Trail）
 NumTrial = 3;
 
 
@@ -123,14 +123,14 @@ SampleRateAudio = 48000;
 
 %音频数据生成部分
 %检查声音数据是否存在
-if exist('.\DataAudio\AudioGeneartion.mat','file')
+if exist('.\DataAudio\AudioGeneration.mat','file')
     %若存在，则读取数据
-    load .\DataAudio\AudioGeneartion.mat;
+    load .\DataAudio\AudioGeneration.mat;
     %并将频率、采样率、编码时长、左右耳强度与数据文件进行对比，若一致，则无需重新生成数据文件
     if  isequal(MatrixFreq,MatrixFreq_last)  &&...
             SampleRateAudio == SampleRateAudio_last &&...
             TimeCodeSound == TimeCodeSound_last &&...
-            TimeWhiteNosie == TimeWhiteNoise_last &&...
+            TimeWhiteNoise == TimeWhiteNoise_last &&...
             isequal(MatrixLeftAmp,MatrixLeftAmp_last) &&...
             isequal(MatrixRightAmp,MatrixRightAmp_last) 
         
@@ -140,7 +140,7 @@ if exist('.\DataAudio\AudioGeneartion.mat','file')
         
         AudioGeneration(TimeCodeSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
         
-        load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
+        load .\DataAudio\AudioGeneration.mat DataPureTone DataWhiteNoise;
         disp('音频数据已更新!')
         
     end
@@ -149,7 +149,7 @@ else
     
     AudioGeneration(TimeCodeSound,TimeWhiteNoise,MatrixFreq,MatrixLeftAmp,MatrixRightAmp,SampleRateAudio);
     
-    load .\DataAudio\AudioGeneartion.mat DataPureTone DataWhiteNoise;
+    load .\DataAudio\AudioGeneration.mat DataPureTone DataWhiteNoise;
     
     disp('生成音频数据!')
      
@@ -161,7 +161,8 @@ end
 %提示信息
 MessagePrepare = double(['实验将于 ',num2str(TimePrepare),' 秒后开始...']);
 MessageRefSound = double('参考音...');
-MessageWhiteNoise = double('请用笔在纸上记录你的答案...'); 
+MessageWhiteNoise1 = double('白噪声...');
+MessageWhiteNoise2 = double('请用笔在纸上记录你的答案...'); 
 MessageFinish = double('实验结束：)');
 
 %%
@@ -171,7 +172,7 @@ MessageFinish = double('实验结束：)');
 LPTAddress = 53264;
 
 %并口标记含义说明
-%1-200:表示每个图案（trial）声音呈现的开始和结束
+%1-200:表示每个trial的开始
 %201:表示播放高斯白噪声
 %202-250:保留
 %251:表示实验开始（准备阶段开始）

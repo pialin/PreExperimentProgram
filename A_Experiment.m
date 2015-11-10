@@ -175,14 +175,14 @@ try
 
     
     %等待阶段
-    %时长为准备时长减去倒计时时长
     for frame =1:round(TimePrepare*FramePerSecond)
         if frame == 2
 %         %每次打完标记后需要重新将并口置零
 %         lptwrite(LPTAddress,0);       
         end
+        SecRemain = ceil((TimePrepare*FramePerSecond-frame)/FramePerSecond);
         %绘制提示语
-        DrawFormattedText(PointerWindow,MessagePrepare,'center', 'center', ColorFont);
+        DrawFormattedText(PointerWindow,[double('实验 '),double(num2str(SecRemain)),double(' 秒后开始...')],'center', 'center', ColorFont);
         %提示程序所有内容已绘制完成
         Screen('DrawingFinished', PointerWindow);
         
@@ -268,8 +268,8 @@ try
 
     %%
     %初始化SequenceCodeDot用于记录随机选取的编码点，每一列为一个Trial
-    SequenceCodeDot = zeros(NumCodedDot,NumTrial);
-  
+    SequenceCodeDot = zeros(NumCodeDot,NumTrial);
+    AllDot = [1:4,6:9];
     
     %编码阶段
     %重复次数由ParameterSetting中的NumTrial决定
@@ -277,23 +277,28 @@ try
         
         
         %随机获取进行声音编码的点
-        SequenceCodeDot(:,trial) = randperm(NumSquare,NumCodedDot)';  
+       
+        SequenceCodeDot(:,trial) = AllDot(randperm(length(AllDot)-1,NumCodeDot)');
+
         %求编码声音的最大幅值（用于归一）
         MaxAmp = max([MatrixLeftAmp(SequenceCodeDot(:,trial))', MatrixRightAmp(SequenceCodeDot(:,trial))']);
         
+        CodeSoundLeft = reshape(DataPureTone(1,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodeDot,[])/MaxAmp;
+        CodeSoundRight = reshape(DataPureTone(2,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodeDot,[])/MaxAmp;
+        
         %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-        AudioDataLeft = [ 
+        AudioDataLeft = [ ...
             zeros(1,SampleRateAudio),...
             reshape(DataPureTone(1,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
             zeros(1,SampleRateAudio*2),...
-            repmat([reshape(DataPureTone(1,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodedDot,[]),zeros(1,SampleRateAudio*TimeGapSilence)]/MaxAmp,1,AudioRepetition),...
+            repmat([reshape(CodeSoundLeft',1,[]),zeros(1,SampleRateAudio*TimeGapSilence)],1,AudioRepetition),...
             DataWhiteNoise,...
             ];
-        AudioDataRight = [ 
+        AudioDataRight = [ ...
             zeros(1,SampleRateAudio),...
             reshape(DataPureTone(2,5,:)/max(MatrixLeftAmp(5),MatrixRightAmp(5)),1,[]),...
             zeros(1,SampleRateAudio*2),...
-            repmat([reshape(DataPureTone(2,SequenceCodeDot(:,trial),1:TimeCodeSound*SampleRateAudio),NumCodedDot,[]),zeros(1,SampleRateAudio*TimeGapSilence)]/MaxAmp,1,AudioRepetition ),...
+            repmat([reshape(CodeSoundRight',1,[]),zeros(1,SampleRateAudio*TimeGapSilence)],1,AudioRepetition),...
             DataWhiteNoise,...
             ];
         
@@ -307,7 +312,7 @@ try
         PsychPortAudio('Start', HandlePortAudio, 1, AudioStartTime, WaitUntilDeviceStart);
         
 %         %并口标记：Trial开始
-%         lptwrite(LPTAddress,trial);
+%         lptwrite(LPTAddress,mod(trial-1,200)+1);
 
 
         %无声
@@ -419,7 +424,7 @@ try
         
         
         %编码声音呈现阶段
-        for dot = 1:NumCodedDot
+        for dot = 1:NumCodeDot
             
             for frame=1:round(TimeCodeSound*FramePerSecond)
 
@@ -433,7 +438,7 @@ try
                     YLine = reshape(repmat(YSquareCenter((SequenceCodeDot(1:dot,trial))),2,1),1,[]);
                     
                     
-                    if dot ~= NumCodedDot
+                    if dot ~= NumCodeDot
                         
                         Screen('DrawLines',PointerWindow,[XLine(2:end-1);YLine(2:end-1)],WidthLine,ColorLine);
                         
@@ -477,12 +482,12 @@ try
             end
         end
         
-        for frame=1:round((AudioRepetition*TimeGapSilence+(AudioRepetition-1)*TimeCodeSound*NumCodedDot)*FramePerSecond)
+        for frame=1:round((AudioRepetition*TimeGapSilence+(AudioRepetition-1)*TimeCodeSound*NumCodeDot)*FramePerSecond)
             
             %绘制方块和圆点
             Screen('FillRect', PointerWindow,ColorSquare,RectSquare);
             Screen('FillOval', PointerWindow,ColorDot,RectDot(:,SequenceCodeDot(:,trial)),ceil(SizeDot));
-            if NumCodedDot > 1
+            if NumCodeDot > 1
             Screen('DrawLines',PointerWindow,[XLine(2:end),XLine(1);YLine(2:end),YLine(1)],WidthLine,ColorLine);
             end
             Screen('DrawingFinished', PointerWindow);
@@ -653,15 +658,15 @@ try
     %%
     %存储记录文件
     %记录文件路径
-    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName{1},filesep,'A',num2str(NumCodedDot)];
+    RecordPath = ['.',filesep,'RecordFiles',filesep,SubjectName{1},filesep,'A',num2str(NumCodeDot)];
     if ~exist(RecordPath,'dir')
         mkdir(RecordPath);
     end
     %记录文件名
     RecordFile = [RecordPath,filesep,DateString,'.mat'];
 
-    %存储的变量包括NumCodedDot,NumTrial,SequenceCodeDot
-    save(RecordFile,'NumCodedDot','NumTrial','SequenceCodeDot','SubjectAnswer');
+    %存储的变量包括NumCodeDot,NumTrial,SequenceCodeDot
+    save(RecordFile,'NumCodeDot','NumTrial','SequenceCodeDot');
 
 
   
@@ -683,11 +688,7 @@ catch Error
     RestrictKeysForKbCheck([]);
     %在命令行输出前面的错误提示信息
     rethrow(Error);
-    
 
-
-    
-    
 end
 
 

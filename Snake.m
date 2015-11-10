@@ -369,50 +369,50 @@ try
             switch [num2str(sign(KeyDistance(1))),num2str(sign(KeyDistance(2)))]
                 
                 case '01'
-                    CodedDot = 8;
+                    CodeDot = 8;
                 case '10'
-                    CodedDot = 6;
+                    CodeDot = 6;
                 case '0-1'
-                    CodedDot = 2;
+                    CodeDot = 2;
                 case '-10'
-                    CodedDot = 4;
+                    CodeDot = 4;
                     
                 case '11'
                     DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
                     if DirectionAngle >= 0 && DirectionAngle < pi/8
-                        CodedDot=6;
+                        CodeDot=6;
                     elseif DirectionAngle >= pi/8  && DirectionAngle < pi/8*3
-                        CodedDot=9;
+                        CodeDot=9;
                     elseif DirectionAngle >= pi/8*3  && DirectionAngle < pi/2
-                        CodedDot=8;
+                        CodeDot=8;
                     end
                 case '-11'
                     DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
                     if DirectionAngle >= 0 && DirectionAngle < pi/8
-                        CodedDot=4;
+                        CodeDot=4;
                     elseif DirectionAngle >= pi/8  && DirectionAngle < pi/8*3
-                        CodedDot=7;
+                        CodeDot=7;
                     elseif DirectionAngle >= pi/8*3  && DirectionAngle < pi/2
-                        CodedDot=8;
+                        CodeDot=8;
                     end
                     
                 case '-1-1'
                     DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
                     if DirectionAngle >= 0 && DirectionAngle < pi/8
-                        CodedDot=4;
+                        CodeDot=4;
                     elseif DirectionAngle >= pi/8  && DirectionAngle < pi/8*3
-                        CodedDot=1;
+                        CodeDot=1;
                     elseif DirectionAngle >= pi/8*3  && DirectionAngle < pi/2
-                        CodedDot=2;
+                        CodeDot=2;
                     end
                 case '1-1'
                     DirectionAngle = atan(abs(KeyDistance(2)/KeyDistance(1)));
                     if DirectionAngle >=0 && DirectionAngle <pi/8
-                        CodedDot=6;
+                        CodeDot=6;
                     elseif DirectionAngle >= pi/8  && DirectionAngle < pi/8*3
-                        CodedDot=3;
+                        CodeDot=3;
                     elseif DirectionAngle >= pi/8*3  && DirectionAngle < pi/2
-                        CodedDot=2;
+                        CodeDot=2;
                     end
             end
             
@@ -422,12 +422,12 @@ try
             %声音生成
             
             %根据编码点生成相应的音频数据 AudioDataLeft，AudioDataRight分别代表左右声道的音频数据
-            AudioDataLeft = reshape(DataPureTone(1,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
+            AudioDataLeft = reshape(DataPureTone(1,CodeDot,1:TimeCodeSound*SampleRateAudio),1,[]);
             
-            AudioDataRight = reshape(DataPureTone(2,CodedDot,1:TimeCodedSound*SampleRateAudio),1,[]);
+            AudioDataRight = reshape(DataPureTone(2,CodeDot,1:TimeCodeSound*SampleRateAudio),1,[]);
             
             %归一化
-            MaxAmp = max([MatrixLeftAmp(CodedDot), MatrixRightAmp(CodedDot)]);
+            MaxAmp = max([MatrixLeftAmp(CodeDot), MatrixRightAmp(CodeDot)]);
             AudioDataRight =  AudioDataRight/MaxAmp;
             AudioDataLeft =  AudioDataLeft/MaxAmp;
             
@@ -709,7 +709,7 @@ try
     end
     %记录文件名
     RecordFile = [RecordPath,filesep,DateString,'.mat'];
-    %存储的变量包括NumCodedDot,NumTrial,SequenceCodedDot
+    %存储的变量包括NumCodeDot,NumTrial,SequenceCodeDot
     save(RecordFile,'NumTrial','PosTarget','NumStep','PosCursor');
     
     %%
